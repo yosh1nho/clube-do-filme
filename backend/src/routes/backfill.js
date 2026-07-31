@@ -10,8 +10,13 @@ console.log('[backfill] TMDB_API_KEY loaded:', TMDB_API_KEY ? 'YES (length ' + T
 
 async function fetchTmdb(path) {
   const url = `${TMDB_BASE}${path}?api_key=${TMDB_API_KEY}&language=pt-BR`;
+  console.log('[backfill] Fetching TMDB:', url.substring(0, 80) + '...');
   const res = await fetch(url);
-  return res.json();
+  const data = await res.json();
+  if (data.status_code) {
+    console.log('[backfill] TMDB error:', data.status_message);
+  }
+  return data;
 }
 
 router.get('/test', (req, res) => {
