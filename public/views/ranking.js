@@ -12,12 +12,26 @@ async function apiFetch(url, opts = {}) {
 function renderStars(nota) {
   const container = document.createElement('div');
   container.className = 'stars';
+
   for (let i = 1; i <= 5; i++) {
-    const star = document.createElement('span');
-    star.className = 'star' + (i <= Math.round(nota) ? ' star-filled' : '');
-    star.textContent = '★';
-    container.appendChild(star);
+    const slot = document.createElement('span');
+    slot.className = 'star-slot';
+
+    const base = document.createElement('span');
+    base.className = 'star';
+    base.textContent = '★';
+    slot.appendChild(base);
+
+    const overlay = document.createElement('span');
+    overlay.className = 'star star-overlay';
+    overlay.textContent = '★';
+    const fill = Math.max(0, Math.min(1, nota - (i - 1)));
+    overlay.style.width = (fill * 100) + '%';
+    slot.appendChild(overlay);
+
+    container.appendChild(slot);
   }
+
   return container;
 }
 

@@ -39,6 +39,9 @@ router.post('/', async (req, res) => {
     if (!quinzena_id || nota === undefined) {
       return res.status(400).json({ error: 'quinzena_id e nota obrigatorios' });
     }
+    if (typeof nota !== 'number' || isNaN(nota) || nota < 0 || nota > 5) {
+      return res.status(400).json({ error: 'Nota invalida (0 a 5)' });
+    }
 
     const { data, error } = await sb
       .from('avaliacoes')
@@ -68,7 +71,13 @@ router.put('/:id', async (req, res) => {
     const { data: { user } } = await sb.auth.getUser(token);
 
     const updates = {};
-    if (req.body.nota !== undefined) updates.nota = req.body.nota;
+    if (req.body.nota !== undefined) {
+      const nota = req.body.nota;
+      if (typeof nota !== 'number' || isNaN(nota) || nota < 0 || nota > 5) {
+        return res.status(400).json({ error: 'Nota invalida (0 a 5)' });
+      }
+      updates.nota = nota;
+    }
     if (req.body.comentario !== undefined) updates.comentario = req.body.comentario;
     if (req.body.spoiler !== undefined) updates.spoiler = req.body.spoiler;
 

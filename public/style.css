@@ -669,6 +669,22 @@ select:focus {
   color: var(--charcoal);
 }
 
+.star-slot {
+  position: relative;
+  display: inline-block;
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.star-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  color: var(--charcoal);
+}
+
 /* --- Reviews --- */
 .reviews-section {
   border-top: var(--border-light);

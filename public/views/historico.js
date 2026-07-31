@@ -13,12 +13,27 @@ function renderStars(notaRef) {
   const container = document.createElement('div');
   container.className = 'stars';
   const getNota = () => typeof notaRef === 'object' ? notaRef.value : notaRef;
+
   for (let i = 1; i <= 5; i++) {
-    const star = document.createElement('span');
-    star.className = 'star' + (i <= getNota() ? ' star-filled' : '');
-    star.textContent = '★';
-    container.appendChild(star);
+    const slot = document.createElement('span');
+    slot.className = 'star-slot';
+
+    const base = document.createElement('span');
+    base.className = 'star';
+    base.textContent = '★';
+    slot.appendChild(base);
+
+    const overlay = document.createElement('span');
+    overlay.className = 'star star-overlay';
+    overlay.textContent = '★';
+    const nota = getNota();
+    const fill = Math.max(0, Math.min(1, nota - (i - 1)));
+    overlay.style.width = (fill * 100) + '%';
+    slot.appendChild(overlay);
+
+    container.appendChild(slot);
   }
+
   return container;
 }
 
@@ -249,7 +264,7 @@ async function abrirDetalhes(q) {
   infoDiv.appendChild(title);
 
   if (media) {
-    const starsDiv = renderStars(Math.round(Number(media)));
+    const starsDiv = renderStars(Number(media));
     const mediaText = document.createElement('span');
     mediaText.className = 'caption';
     mediaText.textContent = ` ${media} de 5`;

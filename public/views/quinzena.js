@@ -20,32 +20,62 @@ function renderStars(notaRef, interactive = false, onChange = null) {
   const setNota = (n) => {
     if (typeof notaRef === 'object') notaRef.value = n;
   };
+
+  const slots = [];
+
+  function render() {
+    const nota = getNota();
+    slots.forEach((s, idx) => {
+      const fill = Math.max(0, Math.min(1, nota - idx));
+      s.overlay.style.width = (fill * 100) + '%';
+    });
+  }
+
   for (let i = 1; i <= 5; i++) {
-    const star = document.createElement('span');
-    star.className = 'star' + (i <= getNota() ? ' star-filled' : '');
-    star.textContent = '★';
+    const slot = document.createElement('span');
+    slot.className = 'star-slot';
+
+    const base = document.createElement('span');
+    base.className = 'star';
+    base.textContent = '★';
+    slot.appendChild(base);
+
+    const overlay = document.createElement('span');
+    overlay.className = 'star star-overlay';
+    overlay.textContent = '★';
+    slot.appendChild(overlay);
+
+    slots.push({ slot, overlay });
+
     if (interactive) {
-      star.style.cursor = 'pointer';
-      star.addEventListener('click', () => {
-        setNota(i);
-        container.querySelectorAll('.star').forEach((s, idx) => {
-          s.classList.toggle('star-filled', idx < i);
-        });
-        onChange?.(i);
-      });
-      star.addEventListener('mouseenter', () => {
-        container.querySelectorAll('.star').forEach((s, idx) => {
-          s.classList.toggle('star-filled', idx < i);
+      slot.style.cursor = 'pointer';
+      slot.addEventListener('mousemove', (e) => {
+        const rect = slot.getBoundingClientRect();
+        const frac = (e.clientX - rect.left) / rect.width;
+        const val = frac <= 0.5 ? i - 0.5 : i;
+        slots.forEach((s, idx) => {
+          const fill = Math.max(0, Math.min(1, val - idx));
+          s.overlay.style.width = (fill * 100) + '%';
         });
       });
-      star.addEventListener('mouseleave', () => {
-        container.querySelectorAll('.star').forEach((s, idx) => {
-          s.classList.toggle('star-filled', idx < getNota());
-        });
+      slot.addEventListener('click', (e) => {
+        const rect = slot.getBoundingClientRect();
+        const frac = (e.clientX - rect.left) / rect.width;
+        const val = frac <= 0.5 ? i - 0.5 : i;
+        setNota(val);
+        render();
+        onChange?.(val);
       });
     }
-    container.appendChild(star);
+
+    container.appendChild(slot);
   }
+
+  if (interactive) {
+    container.addEventListener('mouseleave', render);
+  }
+
+  render();
   return container;
 }
 
@@ -584,7 +614,7 @@ async function renderEmCartaz(data, container) {
     : null;
 
   if (media) {
-    const starsDiv = renderStars(Math.round(Number(media)));
+    const starsDiv = renderStars(Number(media));
     const mediaText = document.createElement('span');
     mediaText.className = 'caption';
     mediaText.textContent = ` ${media} de 5`;
