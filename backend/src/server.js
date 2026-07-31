@@ -24,6 +24,7 @@ app.use('/api/tmdb', require('./routes/tmdb'));
 app.use('/api/quinzenas', require('./routes/quinzenas'));
 app.use('/api/avaliacoes', require('./routes/avaliacoes'));
 app.use('/api/ranking', require('./routes/ranking'));
+app.use('/api/cron', require('./routes/cron'));
 
 app.get('/api/check-supabase', async (req, res) => {
   try {

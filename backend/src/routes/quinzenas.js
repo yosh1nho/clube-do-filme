@@ -1,5 +1,6 @@
 const { Router } = require('express');
 const { createClient } = require('@supabase/supabase-js');
+const supabase = require('../supabase');
 
 const router = Router();
 
@@ -7,6 +8,17 @@ function authed(token) {
   return createClient(process.env.SUPABASE_URL, process.env.SUPABASE_ANON_KEY, {
     global: { headers: { Authorization: `Bearer ${token}` } }
   });
+}
+
+async function fecharExpiradas(sb) {
+  const hoje = new Date().toISOString().split('T')[0];
+  const client = sb.serviceClient || sb;
+  const { error } = await client
+    .from('quinzenas')
+    .update({ status: 'ENCERRADA' })
+    .eq('status', 'EM_CARTAZ')
+    .lte('data_fim', hoje);
+  if (error) console.error('fecharExpiradas error:', error.message);
 }
 
 function proximoNaRotacao(usuarios, ultimoEscolhedorId) {
@@ -43,7 +55,9 @@ router.get('/atual', async (req, res) => {
       const hoje = new Date().toISOString().split('T')[0];
       const expirou = ultima.data_fim && ultima.data_fim <= hoje;
 
-      if (!expirou) {
+      if (expirou) {
+        await fecharExpiradas(supabase);
+      } else {
         const { data: avaliacoes } = await sb
           .from('avaliacoes')
           .select('*, usuarios(nome, avatar_url), reacoes(*)')
@@ -145,6 +159,8 @@ router.post('/', async (req, res) => {
     const hoje = new Date();
     const dataFim = new Date(hoje);
     dataFim.setDate(dataFim.getDate() + 15);
+
+    await fecharExpiradas(supabase);
 
     const { data: quinzena, error: errQ } = await sb
       .from('quinzenas')
