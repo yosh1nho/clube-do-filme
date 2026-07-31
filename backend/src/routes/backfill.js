@@ -6,6 +6,8 @@ const router = Router();
 const TMDB_API_KEY = process.env.TMDB_API_KEY;
 const TMDB_BASE = 'https://api.themoviedb.org/3';
 
+console.log('[backfill] TMDB_API_KEY loaded:', TMDB_API_KEY ? 'YES (length ' + TMDB_API_KEY.length + ')' : 'NO');
+
 async function fetchTmdb(path) {
   const url = `${TMDB_BASE}${path}?api_key=${TMDB_API_KEY}&language=pt-BR`;
   const res = await fetch(url);
@@ -14,6 +16,7 @@ async function fetchTmdb(path) {
 
 router.post('/', async (req, res) => {
   try {
+    console.log('[backfill] Starting backfill, TMDB_API_KEY:', TMDB_API_KEY ? 'present' : 'missing');
     const sb = supabase.serviceClient || supabase;
 
     const { data: filmes, error } = await sb
