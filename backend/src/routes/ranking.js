@@ -20,6 +20,7 @@ router.get('/', async (req, res) => {
     const { data: quinzenas, error: errQ } = await sb
       .from('quinzenas')
       .select('id, usuario_id, data_inicio, data_fim, status, filmes(*), avaliacoes(nota)')
+      .neq('status', 'AGUARDANDO')
       .order('data_inicio', { ascending: true });
 
     if (errQ) return res.status(500).json({ error: errQ.message });

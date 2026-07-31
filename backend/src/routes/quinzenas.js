@@ -185,6 +185,7 @@ router.get('/', async (req, res) => {
     const { data, error } = await sb
       .from('quinzenas')
       .select('*, filmes(*), usuarios(nome, avatar_url)')
+      .neq('status', 'AGUARDANDO')
       .order('data_inicio', { ascending: false });
 
     if (error) return res.status(500).json({ error: error.message });
