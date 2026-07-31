@@ -1505,6 +1505,7 @@ select:focus {
   overflow: hidden;
   margin-bottom: var(--space-6);
   min-height: 380px;
+  background-color: var(--charcoal);
 }
 
 .em-cartaz-hero-backed .em-cartaz-backdrop {
@@ -1513,46 +1514,46 @@ select:focus {
   background-size: cover;
   background-position: center top;
   background-repeat: no-repeat;
+  z-index: 0;
 }
 
-.em-cartaz-hero-backed::after {
+.em-cartaz-hero-backed .em-cartaz-backdrop::after {
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(
     to right,
-    rgba(15, 15, 15, 0.97) 0%,
-    rgba(15, 15, 15, 0.90) 25%,
-    rgba(15, 15, 15, 0.70) 50%,
-    rgba(15, 15, 15, 0.30) 75%,
-    rgba(15, 15, 15, 0.05) 100%
+    rgba(15, 15, 15, 0.98) 0%,
+    rgba(15, 15, 15, 0.92) 20%,
+    rgba(15, 15, 15, 0.75) 40%,
+    rgba(15, 15, 15, 0.40) 65%,
+    rgba(15, 15, 15, 0.10) 85%,
+    transparent 100%
   );
-  z-index: 0;
 }
 
 .em-cartaz-hero-backed .em-cartaz-hero {
   position: relative;
   z-index: 1;
   padding: var(--space-8) var(--space-6);
-  color: var(--off-white);
   display: block;
 }
 
-.em-cartaz-hero-backed .em-cartaz-info {
-  max-width: 600px;
-}
-
 .em-cartaz-hero-backed .sub-heading {
-  color: var(--off-white);
+  color: var(--off-white) !important;
   letter-spacing: var(--ls-subheading);
 }
 
 .em-cartaz-hero-backed .caption {
-  color: rgba(255, 255, 255, 0.75);
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.em-cartaz-hero-backed .caption strong {
+  color: var(--off-white) !important;
 }
 
 .em-cartaz-hero-backed .body-large {
-  color: rgba(255, 255, 255, 0.85);
+  color: rgba(255, 255, 255, 0.9) !important;
 }
 
 .em-cartaz-hero-backed .star {
@@ -1564,9 +1565,9 @@ select:focus {
 }
 
 .em-cartaz-hero-backed .provider-chip {
-  background: rgba(255, 255, 255, 0.1);
-  border-color: rgba(255, 255, 255, 0.2);
-  color: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.12);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: rgba(255, 255, 255, 0.95);
 }
 
 .em-cartaz-hero-backed .provider-chip img {
@@ -1574,7 +1575,7 @@ select:focus {
 }
 
 .em-cartaz-hero-backed .nota-tmdb strong {
-  color: var(--off-white);
+  color: var(--off-white) !important;
 }
 
 .em-cartaz-hero-backed .nota-tmdb span {
@@ -1583,6 +1584,10 @@ select:focus {
 
 .em-cartaz-hero-backed .em-cartaz-poster {
   display: none;
+}
+
+.em-cartaz-hero-backed .em-cartaz-info {
+  max-width: 600px;
 }
 
 /* --- Provider Chips --- */
