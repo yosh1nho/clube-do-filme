@@ -19,11 +19,20 @@ async function fetchTmdb(path) {
   return data;
 }
 
-router.get('/test', (req, res) => {
-  res.json({
-    TMDB_API_KEY: TMDB_API_KEY ? 'present (length ' + TMDB_API_KEY.length + ')' : 'missing',
-    SUPABASE_URL: process.env.SUPABASE_URL ? 'present' : 'missing'
-  });
+router.get('/test', async (req, res) => {
+  const testUrl = `${TMDB_BASE}/movie/314365?api_key=${TMDB_API_KEY}&language=pt-BR`;
+  console.log('[backfill/test] Testing TMDB with URL:', testUrl.substring(0, 80) + '...');
+  try {
+    const testRes = await fetch(testUrl);
+    const testData = await testRes.json();
+    res.json({
+      TMDB_API_KEY: TMDB_API_KEY ? 'present (length ' + TMDB_API_KEY.length + ')' : 'missing',
+      SUPABASE_URL: process.env.SUPABASE_URL ? 'present' : 'missing',
+      tmdbTest: testData.status_code ? 'ERROR: ' + testData.status_message : 'OK: ' + testData.title
+    });
+  } catch (err) {
+    res.json({ error: err.message });
+  }
 });
 
 router.post('/', async (req, res) => {
