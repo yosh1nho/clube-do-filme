@@ -103,6 +103,35 @@ router.get('/atual', async (req, res) => {
       const diasRestantes = Math.ceil((dataFim - hojeDate) / (1000 * 60 * 60 * 24));
 
       const proximo = proximoNaRotacao(usuarios, quinzenaAtual.usuario_id);
+
+      // Verifica se o próximo já escolheu (tem quinzena AGUARDANDO)
+      let proximoJaEscolheu = false;
+      try {
+        const aguardando = await apiFetch(
+          `quinzenas?select=id&status=eq.AGUARDANDO&usuario_id=eq.${proximo.id}&limit=1`
+        );
+        proximoJaEscolheu = Array.isArray(aguardando) && aguardando.length > 0;
+      } catch (err) {
+        console.error('Erro ao verificar se próximo já escolheu:', err.message);
+      }
+
+      const proximoEscolhedorNome = proximoJaEscolheu
+        ? (proximo.id === usuarioLogado.id ? 'Você' : proximo.nome)
+        : null;
+
+      // Se o próximo já escolheu, mostra em_cartaz com aviso (não mostra tela de busca)
+      if (proximoJaEscolheu) {
+        return res.json({
+          estado: 'em_cartaz',
+          quinzena: { ...quinzenaAtual, avaliacoes: avaliacoes || [] },
+          diasRestantes,
+          proximoJaEscolheu: true,
+          proximoEscolhedorNome,
+          usuarios
+        });
+      }
+
+      // Próximo ainda não escolheu
       const proximoEscolhendo = diasRestantes <= 4 && proximo.id === usuarioLogado.id;
 
       if (proximoEscolhendo) {

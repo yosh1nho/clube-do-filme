@@ -24,26 +24,32 @@ router.get('/fechar-quinzenas', async (req, res) => {
       return res.status(500).json({ error: errClose.message });
     }
 
-    const { data: promovida, error: errPromote } = await sb
-      .from('quinzenas')
-      .select('id')
-      .eq('status', 'AGUARDANDO')
-      .order('data_inicio', { ascending: true })
-      .limit(1)
-      .maybeSingle();
-
-    if (errPromote) {
-      console.error('Cron promover error:', errPromote.message);
-    } else if (promovida) {
-      const { error: errUpdate } = await sb
+    // Só promove se fechou alguma
+    if (fechadas && fechadas.length > 0) {
+      const { data: promovida, error: errPromote } = await sb
         .from('quinzenas')
-        .update({ status: 'EM_CARTAZ' })
-        .eq('id', promovida.id);
-      if (errUpdate) console.error('Cron promover update error:', errUpdate.message);
-    }
+        .select('id')
+        .eq('status', 'AGUARDANDO')
+        .order('data_inicio', { ascending: true })
+        .limit(1)
+        .maybeSingle();
 
-    console.log(`Cron: fechadas ${fechadas?.length || 0}, promovida ${promovida ? 'sim' : 'nao'}`);
-    res.json({ fechadas: fechadas?.length || 0, promovida: !!promovida });
+      if (errPromote) {
+        console.error('Cron promover error:', errPromote.message);
+      } else if (promovida) {
+        const { error: errUpdate } = await sb
+          .from('quinzenas')
+          .update({ status: 'EM_CARTAZ' })
+          .eq('id', promovida.id);
+        if (errUpdate) console.error('Cron promover update error:', errUpdate.message);
+      }
+
+      console.log(`Cron: fechadas ${fechadas.length}, promovida ${promovida ? 'sim' : 'nao'}`);
+      res.json({ fechadas: fechadas.length, promovida: !!promovida });
+    } else {
+      console.log('Cron: nenhuma quinzena expirada para fechar');
+      res.json({ fechadas: 0, promovida: false });
+    }
   } catch (err) {
     console.error('Cron error:', err);
     res.status(500).json({ error: err.message });
