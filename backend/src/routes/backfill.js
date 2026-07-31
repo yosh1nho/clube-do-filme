@@ -14,6 +14,13 @@ async function fetchTmdb(path) {
   return res.json();
 }
 
+router.get('/test', (req, res) => {
+  res.json({
+    TMDB_API_KEY: TMDB_API_KEY ? 'present (length ' + TMDB_API_KEY.length + ')' : 'missing',
+    SUPABASE_URL: process.env.SUPABASE_URL ? 'present' : 'missing'
+  });
+});
+
 router.post('/', async (req, res) => {
   try {
     console.log('[backfill] Starting backfill, TMDB_API_KEY:', TMDB_API_KEY ? 'present' : 'missing');
