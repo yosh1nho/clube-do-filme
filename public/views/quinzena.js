@@ -228,7 +228,6 @@ async function initQuinzena() {
   }
 
   if (data.estado === 'escolhendo') {
-    console.log('[Quinzena] Dados recebidos:', data);
     return renderEscolhendo(data, container);
   }
 

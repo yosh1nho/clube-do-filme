@@ -87,8 +87,6 @@ router.get('/', async (req, res) => {
       return b.totalAvaliacoes - a.totalAvaliacoes;
     });
 
-    console.log('Ranking ordenado:', ranking.map(r => ({ nome: r.usuario.nome, media: r.media, posicao: r.posicao })));
-
     ranking.forEach((r, i) => { r.posicao = i + 1; });
 
     res.json({

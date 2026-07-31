@@ -20,7 +20,6 @@ async function fecharExpiradas(sb) {
     .lte('data_fim', hoje)
     .select('id, data_fim');
   if (error) console.error('fecharExpiradas error:', error.message);
-  else if (data?.length) console.log('[fecharExpiradas] fechadas:', data.map(d => d.id));
 
   await promoverProxima(client);
 }
@@ -200,8 +199,6 @@ router.post('/', async (req, res) => {
       .limit(1)
       .maybeSingle();
 
-    console.log('[POST] quinzenaAtiva (data_fim >= hoje):', quinzenaAtiva);
-
     // Fecha expiradas e promove próxima se necessário
     await fecharExpiradas(supabase);
 
@@ -222,8 +219,6 @@ router.post('/', async (req, res) => {
       dataFim.setDate(dataFim.getDate() + 15);
       status = 'EM_CARTAZ';
     }
-
-    console.log('[POST] nova quinzena:', { data_inicio: dataInicio.toISOString().split('T')[0], data_fim: dataFim.toISOString().split('T')[0], status });
 
     const { data: quinzena, error: errQ } = await sb
       .from('quinzenas')
