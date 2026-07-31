@@ -411,7 +411,7 @@ function renderEscolhendo(data, container) {
           sinopse: filme.sinopse
         })
       });
-      if (result.error) {
+      if (result?.error) {
         btnConfirm.textContent = 'Erro, tente de novo';
         btnConfirm.disabled = false;
         return;
