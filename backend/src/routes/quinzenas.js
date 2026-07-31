@@ -191,16 +191,22 @@ router.post('/', async (req, res) => {
 
     // Usa service client para bypassar RLS na verificação
     const serviceSb = supabase.serviceClient || supabase;
+    
+    console.log('[DEBUG] serviceClient existe:', !!supabase.serviceClient);
+    console.log('[DEBUG] hojeStr:', hojeStr);
 
     // Verifica se há quinzena EM_CARTAZ ativa (data_fim >= hoje) ANTES de fechar expiradas
-    const { data: quinzenaAtiva } = await serviceSb
+    const { data: quinzenaAtiva, error: errVerif } = await serviceSb
       .from('quinzenas')
-      .select('data_fim')
+      .select('id, data_fim')
       .eq('status', 'EM_CARTAZ')
       .gte('data_fim', hojeStr)
       .order('data_fim', { ascending: false })
       .limit(1)
       .maybeSingle();
+    
+    console.log('[DEBUG] quinzenaAtiva:', quinzenaAtiva);
+    console.log('[DEBUG] errVerif:', errVerif);
 
     // Fecha expiradas e promove próxima se necessário
     await fecharExpiradas(supabase);
@@ -222,6 +228,8 @@ router.post('/', async (req, res) => {
       dataFim.setDate(dataFim.getDate() + 15);
       status = 'EM_CARTAZ';
     }
+    
+    console.log('[DEBUG] status definido:', status);
 
     const { data: quinzena, error: errQ } = await sb
       .from('quinzenas')
