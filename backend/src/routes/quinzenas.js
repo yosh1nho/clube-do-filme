@@ -19,6 +19,31 @@ async function fecharExpiradas(sb) {
     .eq('status', 'EM_CARTAZ')
     .lte('data_fim', hoje);
   if (error) console.error('fecharExpiradas error:', error.message);
+
+  await promoverProxima(client);
+}
+
+async function promoverProxima(client) {
+  const { data, error } = await client
+    .from('quinzenas')
+    .select('id')
+    .eq('status', 'AGUARDANDO')
+    .order('data_inicio', { ascending: true })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    console.error('promoverProxima error:', error.message);
+    return;
+  }
+
+  if (data) {
+    const { error: errUpdate } = await client
+      .from('quinzenas')
+      .update({ status: 'EM_CARTAZ' })
+      .eq('id', data.id);
+    if (errUpdate) console.error('promoverProxima update error:', errUpdate.message);
+  }
 }
 
 function proximoNaRotacao(usuarios, ultimoEscolhedorId) {
@@ -42,54 +67,58 @@ router.get('/atual', async (req, res) => {
 
     if (errU) return res.status(500).json({ error: errU.message });
 
-    const { data: ultima, error: errL } = await sb
+    await fecharExpiradas(supabase);
+
+    const { data: quinzenaAtual, error: errQ } = await sb
+      .from('quinzenas')
+      .select('*, filmes(*)')
+      .eq('status', 'EM_CARTAZ')
+      .order('data_fim', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (errQ) return res.status(500).json({ error: errQ.message });
+
+    if (quinzenaAtual) {
+      const hoje = new Date().toISOString().split('T')[0];
+      const { data: avaliacoes } = await sb
+        .from('avaliacoes')
+        .select('*, usuarios(nome, avatar_url), reacoes(*)')
+        .eq('quinzena_id', quinzenaAtual.id);
+
+      const dataFim = new Date(quinzenaAtual.data_fim);
+      const hojeDate = new Date(hoje);
+      const diasRestantes = Math.ceil((dataFim - hojeDate) / (1000 * 60 * 60 * 24));
+
+      const proximo = proximoNaRotacao(usuarios, quinzenaAtual.usuario_id);
+      const proximoEscolhendo = diasRestantes <= 4 && proximo.id === usuarioLogado.id;
+
+      if (proximoEscolhendo) {
+        return res.json({
+          estado: 'escolhendo',
+          quinzenaAtual: { ...quinzenaAtual, avaliacoes: avaliacoes || [], diasRestantes },
+          proximoEscolhedor: proximo,
+          usuarios
+        });
+      }
+
+      return res.json({
+        estado: 'em_cartaz',
+        quinzena: { ...quinzenaAtual, avaliacoes: avaliacoes || [] },
+        diasRestantes,
+        usuarios
+      });
+    }
+
+    const { data: ultimaQuinzena } = await sb
       .from('quinzenas')
       .select('*, filmes(*)')
       .order('data_fim', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    if (errL) return res.status(500).json({ error: errL.message });
-
-    if (ultima && ultima.status === 'EM_CARTAZ') {
-      const hoje = new Date().toISOString().split('T')[0];
-      const expirou = ultima.data_fim && ultima.data_fim <= hoje;
-
-      if (expirou) {
-        await fecharExpiradas(supabase);
-      } else {
-        const { data: avaliacoes } = await sb
-          .from('avaliacoes')
-          .select('*, usuarios(nome, avatar_url), reacoes(*)')
-          .eq('quinzena_id', ultima.id);
-
-        const dataFim = new Date(ultima.data_fim);
-        const hojeDate = new Date(hoje);
-        const diasRestantes = Math.ceil((dataFim - hojeDate) / (1000 * 60 * 60 * 24));
-
-        const proximo = proximoNaRotacao(usuarios, ultima.usuario_id);
-        const proximoEscolhendo = diasRestantes <= 4 && proximo.id === usuarioLogado.id;
-
-        if (proximoEscolhendo) {
-          return res.json({
-            estado: 'escolhendo',
-            quinzenaAtual: { ...ultima, avaliacoes: avaliacoes || [], diasRestantes },
-            proximoEscolhedor: proximo,
-            usuarios
-          });
-        }
-
-        return res.json({
-          estado: 'em_cartaz',
-          quinzena: { ...ultima, avaliacoes: avaliacoes || [] },
-          diasRestantes,
-          usuarios
-        });
-      }
-    }
-
-    const proximo = ultima
-      ? proximoNaRotacao(usuarios, ultima.usuario_id)
+    const proximo = ultimaQuinzena
+      ? proximoNaRotacao(usuarios, ultimaQuinzena.usuario_id)
       : usuarios[0];
 
     const escolhendoAgora = proximo.id === usuarioLogado.id;
@@ -97,7 +126,7 @@ router.get('/atual', async (req, res) => {
     res.json({
       estado: escolhendoAgora ? 'escolhendo' : 'aguardando',
       proximoEscolhedor: proximo,
-      ultimaQuinzena: ultima || null,
+      ultimaQuinzena: ultimaQuinzena || null,
       usuarios
     });
   } catch (err) {
@@ -157,19 +186,42 @@ router.post('/', async (req, res) => {
     }
 
     const hoje = new Date();
-    const dataFim = new Date(hoje);
-    dataFim.setDate(dataFim.getDate() + 15);
+    const hojeStr = hoje.toISOString().split('T')[0];
 
     await fecharExpiradas(supabase);
+
+    const { data: quinzenaAtual } = await sb
+      .from('quinzenas')
+      .select('data_fim')
+      .eq('status', 'EM_CARTAZ')
+      .order('data_fim', { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    let dataInicio, dataFim, status;
+
+    if (quinzenaAtual) {
+      const dataFimAtual = new Date(quinzenaAtual.data_fim);
+      dataInicio = new Date(dataFimAtual);
+      dataInicio.setDate(dataInicio.getDate() + 1);
+      dataFim = new Date(dataInicio);
+      dataFim.setDate(dataFim.getDate() + 15);
+      status = 'AGUARDANDO';
+    } else {
+      dataInicio = hoje;
+      dataFim = new Date(hoje);
+      dataFim.setDate(dataFim.getDate() + 15);
+      status = 'EM_CARTAZ';
+    }
 
     const { data: quinzena, error: errQ } = await sb
       .from('quinzenas')
       .insert({
         usuario_id: user.id,
         filme_id: filmeId,
-        data_inicio: hoje.toISOString().split('T')[0],
+        data_inicio: dataInicio.toISOString().split('T')[0],
         data_fim: dataFim.toISOString().split('T')[0],
-        status: 'EM_CARTAZ'
+        status
       })
       .select('*, filmes(*)')
       .single();
