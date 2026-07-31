@@ -13,12 +13,14 @@ function authed(token) {
 async function fecharExpiradas(sb) {
   const hoje = new Date().toISOString().split('T')[0];
   const client = sb.serviceClient || sb;
-  const { error } = await client
+  const { data, error } = await client
     .from('quinzenas')
     .update({ status: 'ENCERRADA' })
     .eq('status', 'EM_CARTAZ')
-    .lte('data_fim', hoje);
+    .lte('data_fim', hoje)
+    .select('id, data_fim');
   if (error) console.error('fecharExpiradas error:', error.message);
+  else if (data?.length) console.log('[fecharExpiradas] fechadas:', data.map(d => d.id));
 
   await promoverProxima(client);
 }
@@ -198,6 +200,8 @@ router.post('/', async (req, res) => {
       .limit(1)
       .maybeSingle();
 
+    console.log('[POST] quinzenaAtual encontrada:', quinzenaAtual);
+
     let dataInicio, dataFim, status;
 
     if (quinzenaAtual) {
@@ -213,6 +217,8 @@ router.post('/', async (req, res) => {
       dataFim.setDate(dataFim.getDate() + 15);
       status = 'EM_CARTAZ';
     }
+
+    console.log('[POST] nova quinzena:', { data_inicio: dataInicio.toISOString().split('T')[0], data_fim: dataFim.toISOString().split('T')[0], status });
 
     const { data: quinzena, error: errQ } = await sb
       .from('quinzenas')

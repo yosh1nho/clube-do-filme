@@ -24,8 +24,8 @@ router.get('/busca', async (req, res) => {
       tmdb_id: f.id,
       titulo: f.title,
       ano: f.release_date ? f.release_date.split('-')[0] : null,
-      poster: f.poster_path ? `https://image.tmdb.org/t/p/w342${f.poster_path}` : null,
-      poster_grande: f.poster_path ? `https://image.tmdb.org/t/p/w500${f.poster_path}` : null,
+      poster: f.poster_path ? `https://image.tmdb.org/t/p/w500${f.poster_path}` : null,
+      poster_grande: f.poster_path ? `https://image.tmdb.org/t/p/w780${f.poster_path}` : null,
       sinopse: f.overview
     }));
 
@@ -51,7 +51,7 @@ router.get('/detalhes/:id', async (req, res) => {
       tmdb_id: data.id,
       titulo: data.title,
       ano: data.release_date ? data.release_date.split('-')[0] : null,
-      poster: data.poster_path ? `https://image.tmdb.org/t/p/w500${data.poster_path}` : null,
+      poster: data.poster_path ? `https://image.tmdb.org/t/p/w780${data.poster_path}` : null,
       sinopse: data.overview,
       diretor: diretor?.name || null,
       generos: (data.genres || []).map(g => g.name)

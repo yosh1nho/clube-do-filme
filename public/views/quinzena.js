@@ -364,7 +364,7 @@ function renderEscolhendo(data, container) {
     modalPoster.className = 'modal-poster';
     if (filme.poster) {
       const img = document.createElement('img');
-      img.src = filme.poster.replace('w342', 'w500');
+      img.src = filme.poster.replace('w500', 'w780');
       img.alt = filme.titulo;
       modalPoster.appendChild(img);
     } else {
