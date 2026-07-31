@@ -1,0 +1,10 @@
+{
+  "name": "clube-do-filme-backend",
+  "version": "1.0.0",
+  "description": "Backend do Quinzena",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node ../api/index.js",
+    "dev": "nodemon ../api/index.js"
+  }
+}
