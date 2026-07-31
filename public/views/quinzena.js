@@ -848,7 +848,7 @@ async function renderEmCartaz(data, container) {
   if (detalhes?.sinopse) {
     const sinopse = document.createElement('p');
     sinopse.className = 'body-large';
-    sinopse.style.cssText = 'margin-top:24px;color:var(--charcoal-82);';
+    sinopse.style.marginTop = '24px';
     sinopse.textContent = detalhes.sinopse;
     infoDiv.appendChild(sinopse);
   }

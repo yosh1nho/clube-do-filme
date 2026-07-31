@@ -333,7 +333,7 @@ async function abrirDetalhes(q) {
   if (detalhes?.sinopse) {
     const sinopse = document.createElement('p');
     sinopse.className = 'body-large';
-    sinopse.style.cssText = 'margin-top:16px;color:var(--charcoal-82);';
+    sinopse.style.marginTop = '16px';
     sinopse.textContent = detalhes.sinopse;
     infoDiv.appendChild(sinopse);
   }
