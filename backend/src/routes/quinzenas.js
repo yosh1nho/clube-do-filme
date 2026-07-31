@@ -190,28 +190,33 @@ router.post('/', async (req, res) => {
     const hoje = new Date();
     const hojeStr = hoje.toISOString().split('T')[0];
 
-    await fecharExpiradas(supabase);
-
-    const { data: quinzenaAtual } = await sb
+    // Verifica se há quinzena EM_CARTAZ ativa (data_fim >= hoje) ANTES de fechar expiradas
+    const { data: quinzenaAtiva } = await sb
       .from('quinzenas')
       .select('data_fim')
       .eq('status', 'EM_CARTAZ')
+      .gte('data_fim', hojeStr)
       .order('data_fim', { ascending: false })
       .limit(1)
       .maybeSingle();
 
-    console.log('[POST] quinzenaAtual encontrada:', quinzenaAtual);
+    console.log('[POST] quinzenaAtiva (data_fim >= hoje):', quinzenaAtiva);
+
+    // Fecha expiradas e promove próxima se necessário
+    await fecharExpiradas(supabase);
 
     let dataInicio, dataFim, status;
 
-    if (quinzenaAtual) {
-      const dataFimAtual = new Date(quinzenaAtual.data_fim);
+    if (quinzenaAtiva) {
+      // Há quinzena ativa ainda → nova fica AGUARDANDO
+      const dataFimAtual = new Date(quinzenaAtiva.data_fim);
       dataInicio = new Date(dataFimAtual);
       dataInicio.setDate(dataInicio.getDate() + 1);
       dataFim = new Date(dataInicio);
       dataFim.setDate(dataFim.getDate() + 15);
       status = 'AGUARDANDO';
     } else {
+      // Não há quinzena ativa → nova entra em cartaz imediatamente
       dataInicio = hoje;
       dataFim = new Date(hoje);
       dataFim.setDate(dataFim.getDate() + 15);
