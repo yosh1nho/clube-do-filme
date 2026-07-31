@@ -726,6 +726,16 @@ async function renderEmCartaz(data, container) {
     ? await apiFetch(`/api/tmdb/detalhes/${filme.tmdb_id}`)
     : null;
 
+  const heroWrapper = document.createElement('div');
+  heroWrapper.className = 'em-cartaz-hero-backed';
+
+  if (detalhes?.backdrop) {
+    const backdrop = document.createElement('div');
+    backdrop.className = 'em-cartaz-backdrop';
+    backdrop.style.backgroundImage = `url(${detalhes.backdrop})`;
+    heroWrapper.appendChild(backdrop);
+  }
+
   const hero = document.createElement('div');
   hero.className = 'em-cartaz-hero';
 
@@ -845,7 +855,8 @@ async function renderEmCartaz(data, container) {
 
   hero.appendChild(posterDiv);
   hero.appendChild(infoDiv);
-  container.appendChild(hero);
+  heroWrapper.appendChild(hero);
+  container.appendChild(heroWrapper);
 
   const reviewsSection = document.createElement('div');
   reviewsSection.className = 'reviews-section';

@@ -1498,6 +1498,89 @@ select:focus {
   color: #dc2626;
 }
 
+/* --- Em Cartaz Hero with Backdrop --- */
+.em-cartaz-hero-backed {
+  position: relative;
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  margin-bottom: var(--space-6);
+  min-height: 380px;
+}
+
+.em-cartaz-hero-backed .em-cartaz-backdrop {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center top;
+}
+
+.em-cartaz-hero-backed .em-cartaz-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    to right,
+    rgba(15, 15, 15, 0.95) 0%,
+    rgba(15, 15, 15, 0.85) 30%,
+    rgba(15, 15, 15, 0.5) 60%,
+    rgba(15, 15, 15, 0.1) 100%
+  );
+}
+
+.em-cartaz-hero-backed .em-cartaz-hero {
+  position: relative;
+  z-index: 1;
+  padding: var(--space-8) var(--space-6);
+  color: var(--off-white);
+}
+
+.em-cartaz-hero-backed .sub-heading {
+  color: var(--off-white);
+  letter-spacing: var(--ls-subheading);
+}
+
+.em-cartaz-hero-backed .caption {
+  color: rgba(255, 255, 255, 0.75);
+}
+
+.em-cartaz-hero-backed .body-large {
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.em-cartaz-hero-backed .star {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.em-cartaz-hero-backed .star-overlay {
+  color: var(--off-white);
+}
+
+.em-cartaz-hero-backed .provider-chip {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.em-cartaz-hero-backed .provider-chip img {
+  filter: brightness(1.1);
+}
+
+.em-cartaz-hero-backed .nota-tmdb strong {
+  color: var(--off-white);
+}
+
+.em-cartaz-hero-backed .nota-tmdb span {
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.em-cartaz-hero-backed .em-cartaz-poster {
+  display: none;
+}
+
+.em-cartaz-hero-backed .em-cartaz-info {
+  max-width: 560px;
+}
+
 /* --- Provider Chips --- */
 .providers-row {
   display: flex;
@@ -1723,6 +1806,11 @@ select:focus {
     flex-direction: column;
     align-items: center;
     text-align: center;
+  }
+
+  .em-cartaz-hero-backed .em-cartaz-hero {
+    padding: var(--space-6) var(--space-4);
+    text-align: left;
   }
 
   .em-cartaz-poster {
