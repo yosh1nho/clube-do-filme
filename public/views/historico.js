@@ -272,18 +272,63 @@ async function abrirDetalhes(q) {
     infoDiv.appendChild(starsDiv);
   }
 
+  const metaDiv = document.createElement('div');
+  metaDiv.className = 'detalhes-meta';
+
+  if (detalhes?.nota_tmdb) {
+    const notaTmdb = document.createElement('div');
+    notaTmdb.className = 'nota-tmdb';
+    notaTmdb.innerHTML = `<span class="star-filled">&#9733;</span> <strong>${detalhes.nota_tmdb.toFixed(1)}</strong> <span>/10 no TMDB</span>`;
+    metaDiv.appendChild(notaTmdb);
+  }
+
+  if (detalhes?.duracao) {
+    const dur = document.createElement('p');
+    dur.className = 'caption';
+    dur.textContent = `${detalhes.duracao} min`;
+    metaDiv.appendChild(dur);
+  }
+
   const metaItems = [];
   metaItems.push(`Escolhido por <strong>${q.usuarios?.nome || '—'}</strong>`);
-  if (detalhes?.diretor) metaItems.push(`Diretor: ${detalhes.diretor}`);
-  if (detalhes?.generos?.length) metaItems.push(detalhes.generos.join(' · '));
-  metaItems.push(`${q.data_inicio} até ${q.data_fim}`);
+  if (detalhes?.diretor) metaItems.push(`Direcao: ${detalhes.diretor}`);
+  if (detalhes?.generos?.length) metaItems.push(detalhes.generos.map(g => g.nome).join(' \u00b7 '));
+  metaItems.push(`${q.data_inicio} ate ${q.data_fim}`);
 
   metaItems.forEach(text => {
     const p = document.createElement('p');
     p.className = 'caption';
     p.innerHTML = text;
-    infoDiv.appendChild(p);
+    metaDiv.appendChild(p);
   });
+
+  if (detalhes?.providers?.length) {
+    const provLabel = document.createElement('p');
+    provLabel.className = 'caption';
+    provLabel.style.marginTop = 'var(--space-2)';
+    provLabel.textContent = 'Onde assistir:';
+    metaDiv.appendChild(provLabel);
+
+    const provRow = document.createElement('div');
+    provRow.className = 'providers-row';
+    detalhes.providers.forEach(p => {
+      const chip = document.createElement('span');
+      chip.className = 'provider-chip' + (p.tipo === 'streaming' ? ' provider-chip-streaming' : '');
+      if (p.logo) {
+        const img = document.createElement('img');
+        img.src = p.logo;
+        img.alt = p.nome;
+        chip.appendChild(img);
+      }
+      const label = document.createElement('span');
+      label.textContent = p.nome;
+      chip.appendChild(label);
+      provRow.appendChild(chip);
+    });
+    metaDiv.appendChild(provRow);
+  }
+
+  infoDiv.appendChild(metaDiv);
 
   if (detalhes?.sinopse) {
     const sinopse = document.createElement('p');

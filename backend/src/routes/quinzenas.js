@@ -58,6 +58,67 @@ async function fecharExpiradas() {
   }
 }
 
+const TMDB_KEY = process.env.TMDB_API_KEY;
+const TMDB_BASE = 'https://api.themoviedb.org/3';
+const TMDB_IMG = 'https://image.tmdb.org/t/p';
+
+async function tmdbFetch(path) {
+  const sep = path.includes('?') ? '&' : '?';
+  const url = `${TMDB_BASE}${path}${sep}api_key=${TMDB_KEY}&language=pt-BR`;
+  const res = await fetch(url);
+  return res.json();
+}
+
+async function syncFilmeData(filmeId, tmdbId) {
+  try {
+    const sb = supabase.serviceClient || supabase;
+
+    const data = await tmdbFetch(
+      `/movie/${tmdbId}?append_to_response=credits,release_dates,watch/providers`
+    );
+    if (data.status_code) return;
+
+    const generos = (data.genres || []).map(g => ({ id: g.id, nome: g.name }));
+    const backdrop = data.backdrop_path ? `${TMDB_IMG}/w1280${data.backdrop_path}` : null;
+
+    const br = (data['release_dates']?.results || []).find(r => r.iso_3166_1 === 'BR');
+    const providers = (() => {
+      const brProv = data['watch/providers']?.results?.BR;
+      if (!brProv) return null;
+      const fmt = (items, tipo) =>
+        (items || []).map(p => ({ nome: p.provider_name, logo: p.logo_path ? `${TMDB_IMG}/w92${p.logo_path}` : null, tipo }));
+      const all = [...fmt(brProv.flatrate, 'streaming'), ...fmt(brProv.rent, 'aluguel'), ...fmt(brProv.buy, 'compra')];
+      return all.length ? all : null;
+    })();
+
+    for (const g of generos) {
+      await sb.from('generos').upsert({ id: g.id, nome: g.nome });
+    }
+
+    const { data: existentes } = await sb
+      .from('filme_generos')
+      .select('genero_id')
+      .eq('filme_id', filmeId);
+    const existentesIds = new Set((existentes || []).map(e => e.genero_id));
+
+    for (const g of generos) {
+      if (!existentesIds.has(g.id)) {
+        await sb.from('filme_generos').insert({ filme_id: filmeId, genero_id: g.id });
+      }
+    }
+
+    await sb.from('filmes').update({
+      duracao_min: data.runtime || null,
+      backdrop_url: backdrop,
+      providers: providers,
+      nota_tmdb: data.vote_average || null,
+      votos_tmdb: data.vote_count || null
+    }).eq('id', filmeId);
+  } catch (err) {
+    console.error('syncFilmeData error:', err.message);
+  }
+}
+
 function proximoNaRotacao(usuarios, ultimoEscolhedorId) {
   const idx = usuarios.findIndex(u => u.id === ultimoEscolhedorId);
   if (idx === -1 || idx === usuarios.length - 1) return usuarios[0];
@@ -218,6 +279,9 @@ router.post('/', async (req, res) => {
     let filmeId;
     if (filmeExistente) {
       filmeId = filmeExistente.id;
+      if (!filmeExistente.nota_tmdb) {
+        syncFilmeData(filmeId, tmdb_id).catch(() => {});
+      }
     } else {
       const { data: novoFilme, error: errF } = await sb
         .from('filmes')
@@ -226,6 +290,7 @@ router.post('/', async (req, res) => {
         .single();
       if (errF) return res.status(500).json({ error: errF.message });
       filmeId = novoFilme.id;
+      syncFilmeData(filmeId, tmdb_id).catch(() => {});
     }
 
     // Fecha expiradas primeiro

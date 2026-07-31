@@ -387,34 +387,143 @@ function renderEscolhendo(data, container) {
     overlay.className = 'modal-overlay';
 
     const modal = document.createElement('div');
-    modal.className = 'modal-confirm';
+    modal.className = 'modal-confirm-full';
 
-    const modalPoster = document.createElement('div');
-    modalPoster.className = 'modal-poster';
-    if (filme.poster) {
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'modal-close';
+    closeBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    closeBtn.addEventListener('click', () => {
+      resultsGrid.querySelectorAll('.movie-card').forEach(c => c.classList.remove('selected'));
+      fecharModal();
+    });
+    modal.appendChild(closeBtn);
+
+    const loading = document.createElement('div');
+    loading.className = 'modal-loading';
+    loading.textContent = 'Carregando...';
+    modal.appendChild(loading);
+
+    overlay.appendChild(modal);
+    document.body.appendChild(overlay);
+    modalAberto = overlay;
+
+    overlay.addEventListener('click', (e) => {
+      if (e.target === overlay) {
+        resultsGrid.querySelectorAll('.movie-card').forEach(c => c.classList.remove('selected'));
+        fecharModal();
+      }
+    });
+
+    apiFetch(`/api/tmdb/detalhes/${filme.tmdb_id}`).then(detalhes => {
+      loading.remove();
+      renderModalContent(modal, filme, detalhes, resultsGrid, fecharModal);
+    });
+  }
+
+  function renderModalContent(modal, filme, detalhes, resultsGrid, fecharModal) {
+    const body = document.createElement('div');
+    body.className = 'modal-body';
+
+    const posterDiv = document.createElement('div');
+    posterDiv.className = 'modal-poster';
+    if (filme.poster || detalhes?.poster) {
       const img = document.createElement('img');
-      img.src = filme.poster.replace('w500', 'w780');
+      img.src = (filme.poster || detalhes.poster).replace('w500', 'w780');
       img.alt = filme.titulo;
-      modalPoster.appendChild(img);
-    } else {
-      modalPoster.innerHTML = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>';
-      modalPoster.style.cssText = 'display:flex;align-items:center;justify-content:center;font-size:3rem;background:var(--charcoal-04);';
+      posterDiv.appendChild(img);
     }
 
-    const modalInfo = document.createElement('div');
-    modalInfo.className = 'modal-info';
+    const detailsDiv = document.createElement('div');
+    detailsDiv.className = 'modal-details';
 
-    const modalTitle = document.createElement('h3');
-    modalTitle.className = 'sub-heading';
-    modalTitle.textContent = filme.titulo;
-    if (filme.ano) modalTitle.textContent += ` (${filme.ano})`;
+    const title = document.createElement('h3');
+    title.className = 'sub-heading';
+    title.textContent = filme.titulo;
+    if (filme.ano || detalhes?.ano) title.textContent += ` (${filme.ano || detalhes.ano})`;
+    detailsDiv.appendChild(title);
 
-    const modalSub = document.createElement('p');
-    modalSub.className = 'caption';
-    modalSub.textContent = 'Este será o filme da quinzena. Confirma?';
+    if (detalhes?.tagline) {
+      const tagline = document.createElement('p');
+      tagline.className = 'caption';
+      tagline.style.cssText = 'font-style:italic;color:var(--muted-gray);margin-top:4px;';
+      tagline.textContent = detalhes.tagline;
+      detailsDiv.appendChild(tagline);
+    }
 
-    const modalActions = document.createElement('div');
-    modalActions.className = 'modal-actions';
+    const meta = document.createElement('div');
+    meta.className = 'detalhes-meta';
+
+    if (detalhes?.duracao) {
+      const dur = document.createElement('p');
+      dur.className = 'caption';
+      dur.textContent = `${detalhes.duracao} min`;
+      meta.appendChild(dur);
+    }
+
+    if (detalhes?.nota_tmdb) {
+      const nota = document.createElement('div');
+      nota.className = 'nota-tmdb';
+      nota.innerHTML = `<span class="star-filled">&#9733;</span> <strong>${detalhes.nota_tmdb.toFixed(1)}</strong> <span>/10</span>`;
+      meta.appendChild(nota);
+    }
+
+    if (detalhes?.diretor) {
+      const dir = document.createElement('p');
+      dir.className = 'caption';
+      dir.textContent = `Direcao: ${detalhes.diretor}`;
+      meta.appendChild(dir);
+    }
+
+    if (detalhes?.elenco?.length) {
+      const elenco = document.createElement('p');
+      elenco.className = 'caption';
+      elenco.textContent = detalhes.elenco.map(e => e.nome).join(', ');
+      meta.appendChild(elenco);
+    }
+
+    if (detalhes?.generos?.length) {
+      const generos = document.createElement('p');
+      generos.className = 'caption';
+      generos.textContent = detalhes.generos.map(g => g.nome).join(' \u00b7 ');
+      meta.appendChild(generos);
+    }
+
+    if (detalhes?.providers?.length) {
+      const provRow = document.createElement('div');
+      provRow.className = 'providers-row';
+      detalhes.providers.forEach(p => {
+        const chip = document.createElement('span');
+        chip.className = 'provider-chip' + (p.tipo === 'streaming' ? ' provider-chip-streaming' : '');
+        if (p.logo) {
+          const img = document.createElement('img');
+          img.src = p.logo;
+          img.alt = p.nome;
+          chip.appendChild(img);
+        }
+        const label = document.createElement('span');
+        label.textContent = p.nome;
+        chip.appendChild(label);
+        provRow.appendChild(chip);
+      });
+      meta.appendChild(provRow);
+    }
+
+    detailsDiv.appendChild(meta);
+
+    if (detalhes?.sinopse) {
+      const sinopse = document.createElement('p');
+      sinopse.className = 'caption';
+      sinopse.style.cssText = 'margin-top:var(--space-3);color:var(--charcoal-82);line-height:1.5;';
+      sinopse.textContent = detalhes.sinopse;
+      detailsDiv.appendChild(sinopse);
+    }
+
+    body.appendChild(posterDiv);
+    body.appendChild(detailsDiv);
+    modal.appendChild(body);
+
+    const footer = document.createElement('div');
+    footer.className = 'modal-footer';
 
     const btnCancel = document.createElement('button');
     btnCancel.className = 'btn btn-outline';
@@ -450,25 +559,9 @@ function renderEscolhendo(data, container) {
       window.__navigate('quinzena');
     });
 
-    modalActions.appendChild(btnCancel);
-    modalActions.appendChild(btnConfirm);
-
-    modalInfo.appendChild(modalTitle);
-    modalInfo.appendChild(modalSub);
-    modalInfo.appendChild(modalActions);
-
-    modal.appendChild(modalPoster);
-    modal.appendChild(modalInfo);
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-    modalAberto = overlay;
-
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) {
-        resultsGrid.querySelectorAll('.movie-card').forEach(c => c.classList.remove('selected'));
-        fecharModal();
-      }
-    });
+    footer.appendChild(btnCancel);
+    footer.appendChild(btnConfirm);
+    modal.appendChild(footer);
   }
 
   function selecionarFilme(f) {
@@ -555,6 +648,64 @@ function renderEscolhendo(data, container) {
     if (e.key === 'Enter') handleSearch();
   });
 
+  const sugestoesSection = document.createElement('div');
+  sugestoesSection.className = 'sugestoes-section';
+
+  const sugestoesTitle = document.createElement('h3');
+  sugestoesTitle.className = 'sugestoes-title';
+  sugestoesTitle.textContent = 'Baseado no que o clube ja viu';
+  sugestoesSection.appendChild(sugestoesTitle);
+
+  const carousel = document.createElement('div');
+  carousel.className = 'sugestoes-carousel';
+  carousel.innerHTML = '<p class="caption text-muted">Carregando sugestoes...</p>';
+  sugestoesSection.appendChild(carousel);
+
+  container.appendChild(sugestoesSection);
+
+  apiFetch('/api/tmdb/sugestoes').then(sugestoes => {
+    carousel.innerHTML = '';
+    if (!Array.isArray(sugestoes) || sugestoes.length === 0) {
+      carousel.innerHTML = '<p class="caption text-muted">Nenhuma sugestao no momento.</p>';
+      return;
+    }
+    sugestoes.forEach(f => {
+      const card = document.createElement('div');
+      card.className = 'sugestao-card';
+      card.addEventListener('click', () => abrirModal(f));
+
+      if (f.poster) {
+        const img = document.createElement('img');
+        img.src = f.poster;
+        img.alt = f.titulo;
+        img.loading = 'lazy';
+        card.appendChild(img);
+      } else {
+        const placeholder = document.createElement('div');
+        placeholder.style.cssText = 'width:100%;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;background:var(--charcoal-04);color:var(--muted-gray);font-size:2rem;';
+        placeholder.textContent = '?';
+        card.appendChild(placeholder);
+      }
+
+      const info = document.createElement('div');
+      info.className = 'sugestao-card-info';
+      const t = document.createElement('p');
+      t.className = 'sugestao-card-title';
+      t.textContent = f.titulo;
+      info.appendChild(t);
+      if (f.ano) {
+        const y = document.createElement('p');
+        y.className = 'sugestao-card-ano';
+        y.textContent = f.ano;
+        info.appendChild(y);
+      }
+      card.appendChild(info);
+      carousel.appendChild(card);
+    });
+  }).catch(() => {
+    carousel.innerHTML = '<p class="caption text-muted">Nao foi possivel carregar sugestoes.</p>';
+  });
+
   return container;
 }
 
@@ -563,18 +714,12 @@ async function renderEmCartaz(data, container) {
   const filme = q.filmes;
   const usuarioLogado = (await sb.auth.getSession()).data.session?.user;
 
-  console.log('[renderEmCartaz] data:', data);
-
-  // Banner de "próximo já escolheu"
   if (data.proximoJaEscolheu && data.proximoEscolhedorNome) {
-    console.log('[renderEmCartaz] Renderizando banner - próximo já escolheu:', data.proximoEscolhedorNome);
     const banner = document.createElement('div');
     banner.className = 'proximo-escolheu-banner';
     banner.style.cssText = 'background:#e8f5e9;border:2px solid #4caf50;border-radius:var(--radius-card);padding:var(--space-4);margin-bottom:var(--space-5);display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-body);color:#2e7d32;font-weight:500;';
     banner.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2.5" style="flex-shrink:0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><span>${data.proximoEscolhedorNome === 'Você' ? 'Você já escolheu o próximo filme!' : `${data.proximoEscolhedorNome} já escolheu o próximo filme!`}</span>`;
     container.appendChild(banner);
-  } else {
-    console.log('[renderEmCartaz] Banner NÃO será renderizado - proximoJaEscolheu:', data.proximoJaEscolheu, 'proximoEscolhedorNome:', data.proximoEscolhedorNome);
   }
 
   const detalhes = filme?.tmdb_id
@@ -622,6 +767,20 @@ async function renderEmCartaz(data, container) {
     meta.appendChild(starsDiv);
   }
 
+  if (detalhes?.nota_tmdb) {
+    const notaTmdb = document.createElement('div');
+    notaTmdb.className = 'nota-tmdb';
+    notaTmdb.innerHTML = `<span class="star-filled">&#9733;</span> <strong>${detalhes.nota_tmdb.toFixed(1)}</strong> <span>/10 no TMDB</span>`;
+    meta.appendChild(notaTmdb);
+  }
+
+  if (detalhes?.duracao) {
+    const dur = document.createElement('p');
+    dur.className = 'caption';
+    dur.textContent = `${detalhes.duracao} min`;
+    meta.appendChild(dur);
+  }
+
   const escolhido = document.createElement('p');
   escolhido.className = 'caption';
   escolhido.innerHTML = `Escolhido por <strong>${data.usuarios?.find(u => u.id === q.usuario_id)?.nome || '—'}</strong>`;
@@ -631,20 +790,46 @@ async function renderEmCartaz(data, container) {
   if (detalhes?.diretor) {
     const diretor = document.createElement('p');
     diretor.className = 'caption';
-    diretor.textContent = `Diretor: ${detalhes.diretor}`;
+    diretor.textContent = `Direcao: ${detalhes.diretor}`;
     meta.appendChild(diretor);
   }
 
   if (detalhes?.generos?.length) {
     const generos = document.createElement('p');
     generos.className = 'caption';
-    generos.textContent = detalhes.generos.join(' · ');
+    generos.textContent = detalhes.generos.map(g => g.nome).join(' \u00b7 ');
     meta.appendChild(generos);
+  }
+
+  if (detalhes?.providers?.length) {
+    const provLabel = document.createElement('p');
+    provLabel.className = 'caption';
+    provLabel.style.marginTop = 'var(--space-2)';
+    provLabel.textContent = 'Onde assistir:';
+    meta.appendChild(provLabel);
+
+    const provRow = document.createElement('div');
+    provRow.className = 'providers-row';
+    detalhes.providers.forEach(p => {
+      const chip = document.createElement('span');
+      chip.className = 'provider-chip' + (p.tipo === 'streaming' ? ' provider-chip-streaming' : '');
+      if (p.logo) {
+        const img = document.createElement('img');
+        img.src = p.logo;
+        img.alt = p.nome;
+        chip.appendChild(img);
+      }
+      const label = document.createElement('span');
+      label.textContent = p.nome;
+      chip.appendChild(label);
+      provRow.appendChild(chip);
+    });
+    meta.appendChild(provRow);
   }
 
   const periodo = document.createElement('p');
   periodo.className = 'caption';
-  periodo.textContent = `${q.data_inicio} até ${q.data_fim}`;
+  periodo.textContent = `${q.data_inicio} ate ${q.data_fim}`;
   meta.appendChild(periodo);
 
   infoDiv.appendChild(title);
