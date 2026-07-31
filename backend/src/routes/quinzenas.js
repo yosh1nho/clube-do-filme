@@ -189,8 +189,11 @@ router.post('/', async (req, res) => {
     const hoje = new Date();
     const hojeStr = hoje.toISOString().split('T')[0];
 
+    // Usa service client para bypassar RLS na verificação
+    const serviceSb = supabase.serviceClient || supabase;
+
     // Verifica se há quinzena EM_CARTAZ ativa (data_fim >= hoje) ANTES de fechar expiradas
-    const { data: quinzenaAtiva } = await sb
+    const { data: quinzenaAtiva } = await serviceSb
       .from('quinzenas')
       .select('data_fim')
       .eq('status', 'EM_CARTAZ')

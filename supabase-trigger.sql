@@ -1,86 +1,94 @@
 -- ============================================
--- TRIGGER: Gerenciamento automático de status das quinzenas
--- ============================================
--- 1. Quando uma nova quinzena é criada:
---    - Se já existe EM_CARTAZ ativa (data_fim >= hoje) → nova fica AGUARDANDO
---    - Senão → nova fica EM_CARTAZ
---
--- 2. Quando uma quinzena é fechada (status → ENCERRADA):
---    - Promove a AGUARDANDO mais antiga para EM_CARTAZ
+-- TRIGGER SIMPLIFICADO: Gerenciamento de status
 -- ============================================
 
-CREATE OR REPLACE FUNCTION gerenciar_status_quinzena()
+-- Função para INSERT
+CREATE OR REPLACE FUNCTION trg_quinzena_insert()
 RETURNS TRIGGER AS $$
 DECLARE
-  hoje DATE := CURRENT_DATE;
   tem_ativa BOOLEAN;
-  antiga_aguardando UUID;
+  max_data_fim DATE;
 BEGIN
-  -- Caso 1: INSERT de nova quinzena
-  IF TG_OP = 'INSERT' THEN
-    -- Verifica se já existe EM_CARTAZ ativa (data_fim >= hoje)
-    SELECT EXISTS(
-      SELECT 1 FROM quinzenas
-      WHERE status = 'EM_CARTAZ'
-        AND data_fim >= hoje
-        AND id != NEW.id
-    ) INTO tem_ativa;
+  -- Verifica se já existe EM_CARTAZ ativa
+  SELECT EXISTS(
+    SELECT 1 FROM quinzenas
+    WHERE status = 'EM_CARTAZ'
+      AND data_fim >= CURRENT_DATE
+  ) INTO tem_ativa;
 
-    IF tem_ativa THEN
-      -- Já tem quinzena ativa → nova fica AGUARDANDO
-      NEW.status := 'AGUARDANDO';
-      -- Define data_inicio para começar quando a ativa terminar
-      SELECT (MAX(data_fim) + INTERVAL '1 day')::DATE
-      INTO NEW.data_inicio
-      FROM quinzenas
-      WHERE status = 'EM_CARTAZ' AND data_fim >= hoje;
-
-      NEW.data_fim := NEW.data_inicio + INTERVAL '15 days';
-    ELSE
-      -- Não tem ativa → nova entra em cartaz
-      NEW.status := 'EM_CARTAZ';
-    END IF;
-
-    RETURN NEW;
+  IF tem_ativa THEN
+    -- Já tem ativa → nova fica AGUARDANDO
+    NEW.status := 'AGUARDANDO';
+    
+    -- Pega a data_fim da quinzena ativa mais recente
+    SELECT MAX(data_fim) INTO max_data_fim
+    FROM quinzenas
+    WHERE status = 'EM_CARTAZ' AND data_fim >= CURRENT_DATE;
+    
+    -- Define datas baseadas na ativa
+    NEW.data_inicio := max_data_fim + INTERVAL '1 day';
+    NEW.data_fim := NEW.data_inicio + INTERVAL '15 days';
+  ELSE
+    -- Não tem ativa → nova entra em cartaz
+    NEW.status := 'EM_CARTAZ';
   END IF;
 
-  -- Caso 2: UPDATE de status (quando fecha uma quinzena)
-  IF TG_OP = 'UPDATE' AND OLD.status = 'EM_CARTAZ' AND NEW.status = 'ENCERRADA' THEN
-    -- Promove a AGUARDANDO mais antiga para EM_CARTAZ
-    SELECT id INTO antiga_aguardando
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Função para UPDATE (quando status muda para ENCERRADA)
+CREATE OR REPLACE FUNCTION trg_quinzena_update()
+RETURNS TRIGGER AS $$
+DECLARE
+  aguardando_id UUID;
+BEGIN
+  -- Só executa se status mudou de EM_CARTAZ para ENCERRADA
+  IF OLD.status = 'EM_CARTAZ' AND NEW.status = 'ENCERRADA' THEN
+    -- Promove a AGUARDANDO mais antiga
+    SELECT id INTO aguardando_id
     FROM quinzenas
     WHERE status = 'AGUARDANDO'
     ORDER BY data_inicio ASC
     LIMIT 1;
 
-    IF antiga_aguardando IS NOT NULL THEN
+    IF aguardando_id IS NOT NULL THEN
       UPDATE quinzenas
       SET status = 'EM_CARTAZ'
-      WHERE id = antiga_aguardando;
+      WHERE id = aguardando_id;
     END IF;
   END IF;
 
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
 
--- Cria o trigger
-DROP TRIGGER IF EXISTS trg_gerenciar_status_quinzena ON quinzenas;
-CREATE TRIGGER trg_gerenciar_status_quinzena
-  BEFORE INSERT OR UPDATE ON quinzenas
+-- Remove triggers antigos se existirem
+DROP TRIGGER IF EXISTS trg_quinzena_before_insert ON quinzenas;
+DROP TRIGGER IF EXISTS trg_quinzena_before_update ON quinzenas;
+
+-- Cria os triggers
+CREATE TRIGGER trg_quinzena_before_insert
+  BEFORE INSERT ON quinzenas
   FOR EACH ROW
-  EXECUTE FUNCTION gerenciar_status_quinzena();
+  EXECUTE FUNCTION trg_quinzena_insert();
+
+CREATE TRIGGER trg_quinzena_before_update
+  BEFORE UPDATE ON quinzenas
+  FOR EACH ROW
+  EXECUTE FUNCTION trg_quinzena_update();
 
 -- ============================================
--- CORREÇÃO: Atualiza dados existentes
+-- CORREÇÃO IMEDIATA DOS DADOS
 -- ============================================
--- Fecha quinzenas expiradas
+
+-- 1. Fecha quinzenas expiradas
 UPDATE quinzenas
 SET status = 'ENCERRADA'
 WHERE status = 'EM_CARTAZ'
   AND data_fim < CURRENT_DATE;
 
--- Promove AGUARDANDO se houver
+-- 2. Verifica se precisa promover AGUARDANDO
 DO $$
 DECLARE
   ativa_count INTEGER;
@@ -104,3 +112,16 @@ BEGIN
     END IF;
   END IF;
 END $$;
+
+-- 3. Corrige quinzenas AGUARDANDO com datas erradas
+UPDATE quinzenas q
+SET 
+  data_inicio = ativa.data_fim + INTERVAL '1 day',
+  data_fim = ativa.data_fim + INTERVAL '16 days'
+FROM (
+  SELECT MAX(data_fim) as data_fim
+  FROM quinzenas
+  WHERE status = 'EM_CARTAZ'
+) ativa
+WHERE q.status = 'AGUARDANDO'
+  AND q.data_inicio != ativa.data_fim + INTERVAL '1 day';
