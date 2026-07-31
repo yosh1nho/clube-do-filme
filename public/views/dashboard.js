@@ -21,6 +21,7 @@ async function loadView(viewName) {
     switch (viewName) {
       case 'quinzena': viewModule = await import('./quinzena.js'); break;
       case 'historico': viewModule = await import('./historico.js'); break;
+      case 'explorar': viewModule = await import('./explorar.js'); break;
       case 'ranking': viewModule = await import('./ranking.js'); break;
       case 'perfil': viewModule = await import('./perfil.js'); break;
     }
@@ -56,10 +57,11 @@ function initDashboard() {
   navLinks.className = 'nav-links';
 
   const tabs = [
-    { view: 'quinzena', label: 'Quinzena Atual' },
-    { view: 'historico', label: 'Histórico' },
-    { view: 'ranking', label: 'Ranking' },
-    { view: 'perfil', label: 'Perfil' }
+    { view: 'quinzena', label: 'Quinzena Atual', mobileLabel: 'Quinzena' },
+    { view: 'historico', label: 'Histórico', mobileLabel: 'Histórico' },
+    { view: 'explorar', label: 'Explorar', mobileLabel: 'Explorar' },
+    { view: 'ranking', label: 'Ranking', mobileLabel: 'Ranking' },
+    { view: 'perfil', label: 'Perfil', mobileLabel: 'Perfil' }
   ];
 
   tabs.forEach(tab => {
@@ -67,6 +69,7 @@ function initDashboard() {
     const a = document.createElement('a');
     a.href = '#';
     a.dataset.view = tab.view;
+    a.dataset.mobileLabel = tab.mobileLabel;
     a.textContent = tab.label;
     a.addEventListener('click', (e) => {
       e.preventDefault();

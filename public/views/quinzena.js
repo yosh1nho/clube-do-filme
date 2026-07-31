@@ -309,6 +309,201 @@ function renderAguardando(data, container) {
   return container;
 }
 
+let _modalOverlay = null;
+
+function fecharModalDetalhes() {
+  if (_modalOverlay) {
+    _modalOverlay.remove();
+    _modalOverlay = null;
+  }
+}
+
+function abrirModalDetalhesFilme(filme, opts = {}) {
+  const { confirmavel = false, mostrarClose = true, onConfirm, onOpen, onClose } = opts;
+
+  fecharModalDetalhes();
+  onOpen?.();
+
+  const overlay = document.createElement('div');
+  overlay.className = 'modal-overlay';
+  _modalOverlay = overlay;
+
+  const modal = document.createElement('div');
+  modal.className = 'modal-confirm-full';
+
+  if (mostrarClose) {
+    const closeBtn = document.createElement('button');
+    closeBtn.className = 'modal-close';
+    closeBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
+    closeBtn.addEventListener('click', () => {
+      onClose?.();
+      fecharModalDetalhes();
+    });
+    modal.appendChild(closeBtn);
+  }
+
+  const loading = document.createElement('div');
+  loading.className = 'modal-loading';
+  loading.textContent = 'Carregando...';
+  modal.appendChild(loading);
+
+  overlay.appendChild(modal);
+  document.body.appendChild(overlay);
+
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      onClose?.();
+      fecharModalDetalhes();
+    }
+  });
+
+  apiFetch(`/api/tmdb/detalhes/${filme.tmdb_id}`).then(detalhes => {
+    loading.remove();
+    renderModalDetalhesContent(modal, filme, detalhes, { confirmavel, onConfirm, onClose });
+  });
+}
+
+function renderModalDetalhesContent(modal, filme, detalhes, opts = {}) {
+  const { confirmavel = false, onConfirm, onClose } = opts;
+
+  const body = document.createElement('div');
+  body.className = 'modal-body';
+
+  const posterDiv = document.createElement('div');
+  posterDiv.className = 'modal-poster';
+  if (filme.poster || detalhes?.poster) {
+    const img = document.createElement('img');
+    img.src = (filme.poster || detalhes.poster).replace('w500', 'w780');
+    img.alt = filme.titulo;
+    posterDiv.appendChild(img);
+  }
+
+  const detailsDiv = document.createElement('div');
+  detailsDiv.className = 'modal-details';
+
+  const title = document.createElement('h3');
+  title.className = 'sub-heading';
+  title.textContent = filme.titulo;
+  if (filme.ano || detalhes?.ano) title.textContent += ` (${filme.ano || detalhes.ano})`;
+  detailsDiv.appendChild(title);
+
+  if (detalhes?.tagline) {
+    const tagline = document.createElement('p');
+    tagline.className = 'caption';
+    tagline.style.cssText = 'font-style:italic;color:var(--muted-gray);margin-top:4px;';
+    tagline.textContent = detalhes.tagline;
+    detailsDiv.appendChild(tagline);
+  }
+
+  const meta = document.createElement('div');
+  meta.className = 'detalhes-meta';
+
+  if (detalhes?.duracao) {
+    const dur = document.createElement('p');
+    dur.className = 'caption';
+    dur.textContent = `${detalhes.duracao} min`;
+    meta.appendChild(dur);
+  }
+
+  if (detalhes?.nota_tmdb) {
+    const nota = document.createElement('div');
+    nota.className = 'nota-tmdb';
+    nota.innerHTML = `<span class="star-filled">&#9733;</span> <strong>${detalhes.nota_tmdb.toFixed(1)}</strong> <span>/10</span>`;
+    meta.appendChild(nota);
+  }
+
+  if (detalhes?.diretor) {
+    const dir = document.createElement('p');
+    dir.className = 'caption';
+    dir.textContent = `Direcao: ${detalhes.diretor}`;
+    meta.appendChild(dir);
+  }
+
+  if (detalhes?.elenco?.length) {
+    const elenco = document.createElement('p');
+    elenco.className = 'caption';
+    elenco.textContent = detalhes.elenco.map(e => e.nome).join(', ');
+    meta.appendChild(elenco);
+  }
+
+  if (detalhes?.generos?.length) {
+    const generos = document.createElement('p');
+    generos.className = 'caption';
+    generos.textContent = detalhes.generos.map(g => g.nome).join(' \u00b7 ');
+    meta.appendChild(generos);
+  }
+
+  if (detalhes?.providers?.length) {
+    const provRow = document.createElement('div');
+    provRow.className = 'providers-row';
+    detalhes.providers.forEach(p => {
+      const chip = document.createElement('span');
+      chip.className = 'provider-chip';
+      if (p.logo) {
+        const img = document.createElement('img');
+        img.src = p.logo;
+        img.alt = p.nome;
+        chip.appendChild(img);
+      }
+      const label = document.createElement('span');
+      label.textContent = p.nome;
+      chip.appendChild(label);
+      provRow.appendChild(chip);
+    });
+    meta.appendChild(provRow);
+  }
+
+  detailsDiv.appendChild(meta);
+
+  if (detalhes?.sinopse) {
+    const sinopse = document.createElement('p');
+    sinopse.className = 'caption';
+    sinopse.style.cssText = 'margin-top:var(--space-3);color:var(--charcoal-82);line-height:1.5;';
+    sinopse.textContent = detalhes.sinopse;
+    detailsDiv.appendChild(sinopse);
+  }
+
+  body.appendChild(posterDiv);
+  body.appendChild(detailsDiv);
+  modal.appendChild(body);
+
+  const footer = document.createElement('div');
+  footer.className = 'modal-footer';
+
+  if (confirmavel) {
+    const btnCancel = document.createElement('button');
+    btnCancel.className = 'btn btn-outline';
+    btnCancel.textContent = 'Cancelar';
+    btnCancel.addEventListener('click', () => {
+      onClose?.();
+      fecharModalDetalhes();
+    });
+
+    const btnConfirm = document.createElement('button');
+    btnConfirm.className = 'btn btn-primary';
+    btnConfirm.textContent = 'Confirmar';
+    btnConfirm.addEventListener('click', async () => {
+      if (onConfirm) {
+        await onConfirm(filme, btnConfirm);
+      }
+    });
+
+    footer.appendChild(btnCancel);
+    footer.appendChild(btnConfirm);
+  } else {
+    const btnFechar = document.createElement('button');
+    btnFechar.className = 'btn btn-outline';
+    btnFechar.textContent = 'Fechar';
+    btnFechar.addEventListener('click', () => {
+      onClose?.();
+      fecharModalDetalhes();
+    });
+    footer.appendChild(btnFechar);
+  }
+
+  modal.appendChild(footer);
+}
+
 function renderEscolhendo(data, container) {
   const header = document.createElement('div');
   header.style.cssText = 'text-align:center;margin-bottom:40px;';
@@ -381,187 +576,37 @@ function renderEscolhendo(data, container) {
   }
 
   function abrirModal(filme) {
-    fecharModal();
-
-    const overlay = document.createElement('div');
-    overlay.className = 'modal-overlay';
-
-    const modal = document.createElement('div');
-    modal.className = 'modal-confirm-full';
-
-    const closeBtn = document.createElement('button');
-    closeBtn.className = 'modal-close';
-    closeBtn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>';
-    closeBtn.addEventListener('click', () => {
-      resultsGrid.querySelectorAll('.movie-card').forEach(c => c.classList.remove('selected'));
-      fecharModal();
-    });
-    modal.appendChild(closeBtn);
-
-    const loading = document.createElement('div');
-    loading.className = 'modal-loading';
-    loading.textContent = 'Carregando...';
-    modal.appendChild(loading);
-
-    overlay.appendChild(modal);
-    document.body.appendChild(overlay);
-    modalAberto = overlay;
-
-    overlay.addEventListener('click', (e) => {
-      if (e.target === overlay) {
+    abrirModalDetalhesFilme(filme, {
+      confirmavel: true,
+      onOpen: () => {
         resultsGrid.querySelectorAll('.movie-card').forEach(c => c.classList.remove('selected'));
-        fecharModal();
-      }
-    });
-
-    apiFetch(`/api/tmdb/detalhes/${filme.tmdb_id}`).then(detalhes => {
-      loading.remove();
-      renderModalContent(modal, filme, detalhes, resultsGrid, fecharModal);
-    });
-  }
-
-  function renderModalContent(modal, filme, detalhes, resultsGrid, fecharModal) {
-    const body = document.createElement('div');
-    body.className = 'modal-body';
-
-    const posterDiv = document.createElement('div');
-    posterDiv.className = 'modal-poster';
-    if (filme.poster || detalhes?.poster) {
-      const img = document.createElement('img');
-      img.src = (filme.poster || detalhes.poster).replace('w500', 'w780');
-      img.alt = filme.titulo;
-      posterDiv.appendChild(img);
-    }
-
-    const detailsDiv = document.createElement('div');
-    detailsDiv.className = 'modal-details';
-
-    const title = document.createElement('h3');
-    title.className = 'sub-heading';
-    title.textContent = filme.titulo;
-    if (filme.ano || detalhes?.ano) title.textContent += ` (${filme.ano || detalhes.ano})`;
-    detailsDiv.appendChild(title);
-
-    if (detalhes?.tagline) {
-      const tagline = document.createElement('p');
-      tagline.className = 'caption';
-      tagline.style.cssText = 'font-style:italic;color:var(--muted-gray);margin-top:4px;';
-      tagline.textContent = detalhes.tagline;
-      detailsDiv.appendChild(tagline);
-    }
-
-    const meta = document.createElement('div');
-    meta.className = 'detalhes-meta';
-
-    if (detalhes?.duracao) {
-      const dur = document.createElement('p');
-      dur.className = 'caption';
-      dur.textContent = `${detalhes.duracao} min`;
-      meta.appendChild(dur);
-    }
-
-    if (detalhes?.nota_tmdb) {
-      const nota = document.createElement('div');
-      nota.className = 'nota-tmdb';
-      nota.innerHTML = `<span class="star-filled">&#9733;</span> <strong>${detalhes.nota_tmdb.toFixed(1)}</strong> <span>/10</span>`;
-      meta.appendChild(nota);
-    }
-
-    if (detalhes?.diretor) {
-      const dir = document.createElement('p');
-      dir.className = 'caption';
-      dir.textContent = `Direcao: ${detalhes.diretor}`;
-      meta.appendChild(dir);
-    }
-
-    if (detalhes?.elenco?.length) {
-      const elenco = document.createElement('p');
-      elenco.className = 'caption';
-      elenco.textContent = detalhes.elenco.map(e => e.nome).join(', ');
-      meta.appendChild(elenco);
-    }
-
-    if (detalhes?.generos?.length) {
-      const generos = document.createElement('p');
-      generos.className = 'caption';
-      generos.textContent = detalhes.generos.map(g => g.nome).join(' \u00b7 ');
-      meta.appendChild(generos);
-    }
-
-    if (detalhes?.providers?.length) {
-      const provRow = document.createElement('div');
-      provRow.className = 'providers-row';
-      detalhes.providers.forEach(p => {
-        const chip = document.createElement('span');
-        chip.className = 'provider-chip' + (p.tipo === 'streaming' ? ' provider-chip-streaming' : '');
-        if (p.logo) {
-          const img = document.createElement('img');
-          img.src = p.logo;
-          img.alt = p.nome;
-          chip.appendChild(img);
+      },
+      onClose: () => {
+        resultsGrid.querySelectorAll('.movie-card').forEach(c => c.classList.remove('selected'));
+      },
+      onConfirm: async (f, btnConfirm) => {
+        btnConfirm.disabled = true;
+        btnConfirm.textContent = 'Criando...';
+        const result = await apiFetch('/api/quinzenas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tmdb_id: f.tmdb_id,
+            titulo: f.titulo,
+            poster_url: f.poster,
+            ano: f.ano,
+            sinopse: f.sinopse
+          })
+        });
+        if (result?.error) {
+          btnConfirm.textContent = 'Erro, tente de novo';
+          btnConfirm.disabled = false;
+          return;
         }
-        const label = document.createElement('span');
-        label.textContent = p.nome;
-        chip.appendChild(label);
-        provRow.appendChild(chip);
-      });
-      meta.appendChild(provRow);
-    }
-
-    detailsDiv.appendChild(meta);
-
-    if (detalhes?.sinopse) {
-      const sinopse = document.createElement('p');
-      sinopse.className = 'caption';
-      sinopse.style.cssText = 'margin-top:var(--space-3);color:var(--charcoal-82);line-height:1.5;';
-      sinopse.textContent = detalhes.sinopse;
-      detailsDiv.appendChild(sinopse);
-    }
-
-    body.appendChild(posterDiv);
-    body.appendChild(detailsDiv);
-    modal.appendChild(body);
-
-    const footer = document.createElement('div');
-    footer.className = 'modal-footer';
-
-    const btnCancel = document.createElement('button');
-    btnCancel.className = 'btn btn-outline';
-    btnCancel.textContent = 'Cancelar';
-    btnCancel.addEventListener('click', () => {
-      resultsGrid.querySelectorAll('.movie-card').forEach(c => c.classList.remove('selected'));
-      fecharModal();
-    });
-
-    const btnConfirm = document.createElement('button');
-    btnConfirm.className = 'btn btn-primary';
-    btnConfirm.textContent = 'Confirmar';
-    btnConfirm.addEventListener('click', async () => {
-      btnConfirm.disabled = true;
-      btnConfirm.textContent = 'Criando...';
-      const result = await apiFetch('/api/quinzenas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          tmdb_id: filme.tmdb_id,
-          titulo: filme.titulo,
-          poster_url: filme.poster,
-          ano: filme.ano,
-          sinopse: filme.sinopse
-        })
-      });
-      if (result?.error) {
-        btnConfirm.textContent = 'Erro, tente de novo';
-        btnConfirm.disabled = false;
-        return;
+        fecharModalDetalhes();
+        window.__navigate('quinzena');
       }
-      fecharModal();
-      window.__navigate('quinzena');
     });
-
-    footer.appendChild(btnCancel);
-    footer.appendChild(btnConfirm);
-    modal.appendChild(footer);
   }
 
   function selecionarFilme(f) {
@@ -997,4 +1042,4 @@ async function renderEmCartaz(data, container) {
   return container;
 }
 
-export { initQuinzena, apiFetch, renderStars, initReviewCard };
+export { initQuinzena, apiFetch, renderStars, initReviewCard, abrirModalDetalhesFilme, fecharModalDetalhes };
