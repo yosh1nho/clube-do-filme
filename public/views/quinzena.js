@@ -533,13 +533,18 @@ async function renderEmCartaz(data, container) {
   const filme = q.filmes;
   const usuarioLogado = (await sb.auth.getSession()).data.session?.user;
 
+  console.log('[renderEmCartaz] data:', data);
+
   // Banner de "próximo já escolheu"
   if (data.proximoJaEscolheu && data.proximoEscolhedorNome) {
+    console.log('[renderEmCartaz] Renderizando banner - próximo já escolheu:', data.proximoEscolhedorNome);
     const banner = document.createElement('div');
     banner.className = 'proximo-escolheu-banner';
-    banner.style.cssText = 'background:var(--charcoal-04);border:var(--border-light);border-radius:var(--radius-card);padding:var(--space-3) var(--space-4);margin-bottom:var(--space-5);display:flex;align-items:center;gap:var(--space-2);font-size:var(--text-caption);color:var(--muted-gray);';
-    banner.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex-shrink:0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><span>${data.proximoEscolhedorNome === 'Você' ? 'Você já escolheu o próximo filme!' : `${data.proximoEscolhedorNome} já escolheu o próximo filme!`}</span>`;
+    banner.style.cssText = 'background:#e8f5e9;border:2px solid #4caf50;border-radius:var(--radius-card);padding:var(--space-4);margin-bottom:var(--space-5);display:flex;align-items:center;gap:var(--space-3);font-size:var(--text-body);color:#2e7d32;font-weight:500;';
+    banner.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2.5" style="flex-shrink:0"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><span>${data.proximoEscolhedorNome === 'Você' ? 'Você já escolheu o próximo filme!' : `${data.proximoEscolhedorNome} já escolheu o próximo filme!`}</span>`;
     container.appendChild(banner);
+  } else {
+    console.log('[renderEmCartaz] Banner NÃO será renderizado - proximoJaEscolheu:', data.proximoJaEscolheu, 'proximoEscolhedorNome:', data.proximoEscolhedorNome);
   }
 
   const detalhes = filme?.tmdb_id
