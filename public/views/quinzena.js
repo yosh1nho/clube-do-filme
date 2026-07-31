@@ -822,7 +822,7 @@ async function renderEmCartaz(data, container) {
     provRow.className = 'providers-row';
     detalhes.providers.forEach(p => {
       const chip = document.createElement('span');
-      chip.className = 'provider-chip' + (p.tipo === 'streaming' ? ' provider-chip-streaming' : '');
+      chip.className = 'provider-chip';
       if (p.logo) {
         const img = document.createElement('img');
         img.src = p.logo;

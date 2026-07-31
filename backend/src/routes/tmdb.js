@@ -27,19 +27,19 @@ function extrairProviders(watchProviders) {
   const br = watchProviders?.results?.BR;
   if (!br) return null;
 
-  const format = (items, tipo) =>
-    (items || []).map(p => ({
+  const seen = new Set();
+  const providers = (br.flatrate || [])
+    .filter(p => {
+      if (seen.has(p.provider_name)) return false;
+      seen.add(p.provider_name);
+      return true;
+    })
+    .map(p => ({
       nome: p.provider_name,
-      logo: p.logo_path ? `${TMDB_IMG}/w92${p.logo_path}` : null,
-      tipo
+      logo: p.logo_path ? `${TMDB_IMG}/w92${p.logo_path}` : null
     }));
 
-  const all = [
-    ...format(br.flatrate, 'streaming'),
-    ...format(br.rent, 'aluguel'),
-    ...format(br.buy, 'compra')
-  ];
-  return all.length ? all : null;
+  return providers.length ? providers : null;
 }
 
 router.get('/busca', async (req, res) => {

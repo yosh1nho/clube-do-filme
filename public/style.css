@@ -1512,19 +1512,22 @@ select:focus {
   inset: 0;
   background-size: cover;
   background-position: center top;
+  background-repeat: no-repeat;
 }
 
-.em-cartaz-hero-backed .em-cartaz-backdrop::after {
+.em-cartaz-hero-backed::after {
   content: '';
   position: absolute;
   inset: 0;
   background: linear-gradient(
     to right,
-    rgba(15, 15, 15, 0.95) 0%,
-    rgba(15, 15, 15, 0.85) 30%,
-    rgba(15, 15, 15, 0.5) 60%,
-    rgba(15, 15, 15, 0.1) 100%
+    rgba(15, 15, 15, 0.97) 0%,
+    rgba(15, 15, 15, 0.90) 25%,
+    rgba(15, 15, 15, 0.70) 50%,
+    rgba(15, 15, 15, 0.30) 75%,
+    rgba(15, 15, 15, 0.05) 100%
   );
+  z-index: 0;
 }
 
 .em-cartaz-hero-backed .em-cartaz-hero {
@@ -1532,6 +1535,11 @@ select:focus {
   z-index: 1;
   padding: var(--space-8) var(--space-6);
   color: var(--off-white);
+  display: block;
+}
+
+.em-cartaz-hero-backed .em-cartaz-info {
+  max-width: 600px;
 }
 
 .em-cartaz-hero-backed .sub-heading {
@@ -1575,10 +1583,6 @@ select:focus {
 
 .em-cartaz-hero-backed .em-cartaz-poster {
   display: none;
-}
-
-.em-cartaz-hero-backed .em-cartaz-info {
-  max-width: 560px;
 }
 
 /* --- Provider Chips --- */
