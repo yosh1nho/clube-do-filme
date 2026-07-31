@@ -31,18 +31,27 @@ async function apiFetch(path, opts = {}) {
 async function fecharExpiradas() {
   const hoje = new Date().toISOString().split('T')[0];
   try {
-    await apiFetch(`quinzenas?status=eq.EM_CARTAZ&data_fim=lte.${hoje}`, {
-      method: 'PATCH',
-      headers: { 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ status: 'ENCERRADA' })
-    });
-    const aguardando = await apiFetch('quinzenas?status=eq.AGUARDANDO&order=data_inicio.asc&limit=1');
-    if (Array.isArray(aguardando) && aguardando.length > 0) {
-      await apiFetch(`quinzenas?id=eq.${aguardando[0].id}`, {
+    // Primeiro busca as expiradas para saber se há alguma
+    const expiradas = await apiFetch(
+      `quinzenas?select=id&status=eq.EM_CARTAZ&data_fim=lte.${hoje}`
+    );
+    
+    // Só fecha e promove se realmente há expiradas
+    if (Array.isArray(expiradas) && expiradas.length > 0) {
+      await apiFetch(`quinzenas?status=eq.EM_CARTAZ&data_fim=lte.${hoje}`, {
         method: 'PATCH',
         headers: { 'Prefer': 'return=minimal' },
-        body: JSON.stringify({ status: 'EM_CARTAZ' })
+        body: JSON.stringify({ status: 'ENCERRADA' })
       });
+      
+      const aguardando = await apiFetch('quinzenas?select=id&status=eq.AGUARDANDO&order=data_inicio.asc&limit=1');
+      if (Array.isArray(aguardando) && aguardando.length > 0) {
+        await apiFetch(`quinzenas?id=eq.${aguardando[0].id}`, {
+          method: 'PATCH',
+          headers: { 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ status: 'EM_CARTAZ' })
+        });
+      }
     }
   } catch (err) {
     console.error('fecharExpiradas error:', err.message);
