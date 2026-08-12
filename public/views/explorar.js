@@ -40,10 +40,34 @@ function initExplorar() {
   const sugestoesSection = document.createElement('div');
   sugestoesSection.className = 'sugestoes-section';
 
+  const sugestoesHead = document.createElement('div');
+  sugestoesHead.className = 'sugestoes-head';
+
   const sugestoesTitle = document.createElement('h3');
   sugestoesTitle.className = 'sugestoes-title';
   sugestoesTitle.textContent = 'Recomendados para o clube';
-  sugestoesSection.appendChild(sugestoesTitle);
+  sugestoesHead.appendChild(sugestoesTitle);
+
+  const nav = document.createElement('div');
+  nav.className = 'sugestoes-nav';
+
+  const prevBtn = document.createElement('button');
+  prevBtn.type = 'button';
+  prevBtn.className = 'sugestoes-nav-btn';
+  prevBtn.setAttribute('aria-label', 'Ver anteriores');
+  prevBtn.innerHTML = '&larr;';
+
+  const nextBtn = document.createElement('button');
+  nextBtn.type = 'button';
+  nextBtn.className = 'sugestoes-nav-btn';
+  nextBtn.setAttribute('aria-label', 'Ver próximos');
+  nextBtn.innerHTML = '&rarr;';
+
+  nav.appendChild(prevBtn);
+  nav.appendChild(nextBtn);
+  sugestoesHead.appendChild(nav);
+
+  sugestoesSection.appendChild(sugestoesHead);
 
   const sugestoesGrid = document.createElement('div');
   sugestoesGrid.className = 'sugestoes-carousel';
@@ -51,6 +75,67 @@ function initExplorar() {
   sugestoesSection.appendChild(sugestoesGrid);
 
   container.appendChild(sugestoesSection);
+
+  function scrollSugestoes(dir) {
+    const card = sugestoesGrid.querySelector('.sugestao-card');
+    const passo = card ? card.offsetWidth + 12 : 400;
+    sugestoesGrid.scrollBy({ left: dir * passo * 4, behavior: 'smooth' });
+  }
+
+  function atualizarSetas() {
+    const temOverflow = sugestoesGrid.scrollWidth > sugestoesGrid.clientWidth + 4;
+    sugestoesHead.classList.toggle('sugestoes-nav-hidden', !temOverflow);
+  }
+
+  prevBtn.addEventListener('click', () => scrollSugestoes(-1));
+  nextBtn.addEventListener('click', () => scrollSugestoes(1));
+  window.addEventListener('resize', atualizarSetas);
+
+  let isDragging = false;
+  let dragStartX = 0;
+  let dragStartScroll = 0;
+  let dragMoved = 0;
+
+  sugestoesGrid.addEventListener('pointerdown', (e) => {
+    if (e.pointerType !== 'mouse') return;
+    isDragging = true;
+    dragMoved = 0;
+    dragStartX = e.clientX;
+    dragStartScroll = sugestoesGrid.scrollLeft;
+    sugestoesGrid.classList.add('dragging');
+    sugestoesGrid.setPointerCapture(e.pointerId);
+  });
+
+  sugestoesGrid.addEventListener('pointermove', (e) => {
+    if (!isDragging) return;
+    const dx = e.clientX - dragStartX;
+    dragMoved = Math.max(dragMoved, Math.abs(dx));
+    sugestoesGrid.scrollLeft = dragStartScroll - dx;
+  });
+
+  function endDrag() {
+    isDragging = false;
+    sugestoesGrid.classList.remove('dragging');
+  }
+
+  sugestoesGrid.addEventListener('pointerup', endDrag);
+  sugestoesGrid.addEventListener('pointercancel', endDrag);
+
+  sugestoesGrid.addEventListener('click', (e) => {
+    if (dragMoved > 6) {
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  }, true);
+
+  sugestoesGrid.addEventListener('wheel', (e) => {
+    if (Math.abs(e.deltaX) >= Math.abs(e.deltaY)) return;
+    const temOverflow = sugestoesGrid.scrollWidth > sugestoesGrid.clientWidth;
+    if (temOverflow) {
+      e.preventDefault();
+      sugestoesGrid.scrollLeft += e.deltaY;
+    }
+  }, { passive: false });
 
   async function handleSearch() {
     const q = searchInput.value.trim();
@@ -172,8 +257,10 @@ function initExplorar() {
       card.appendChild(info);
       sugestoesGrid.appendChild(card);
     });
+    atualizarSetas();
   }).catch(() => {
     sugestoesGrid.innerHTML = '<p class="caption text-muted">Nao foi possivel carregar recomendacoes.</p>';
+    atualizarSetas();
   });
 
   return container;

@@ -1644,7 +1644,51 @@ select:focus {
 .sugestoes-title {
   font-size: var(--text-card-title);
   color: var(--charcoal);
+  margin-bottom: 0;
+}
+
+.sugestoes-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
   margin-bottom: var(--space-4);
+}
+
+.sugestoes-nav {
+  display: flex;
+  gap: var(--space-2);
+}
+
+.sugestoes-head.sugestoes-nav-hidden .sugestoes-nav {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.sugestoes-nav-btn {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: var(--border-light);
+  border-radius: 50%;
+  background: var(--off-white);
+  color: var(--charcoal);
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s, background-color 0.15s;
+}
+
+.sugestoes-nav-btn:hover {
+  border-color: var(--charcoal-40);
+  background: var(--charcoal-04);
+}
+
+.sugestoes-nav-btn:active {
+  transform: scale(0.95);
 }
 
 .sugestoes-carousel {
@@ -1652,22 +1696,46 @@ select:focus {
   gap: var(--space-3);
   overflow-x: auto;
   padding-bottom: var(--space-3);
-  scroll-snap-type: x mandatory;
+  scroll-snap-type: x proximity;
   -webkit-overflow-scrolling: touch;
+  cursor: grab;
+  user-select: none;
+  scrollbar-width: auto;
+  scrollbar-color: var(--charcoal-40) var(--charcoal-04);
+}
+
+.sugestoes-carousel.dragging {
+  cursor: grabbing;
+}
+
+.sugestoes-carousel .sugestao-card {
+  cursor: grab;
+}
+
+.sugestoes-carousel.dragging .sugestao-card {
+  cursor: grabbing;
+}
+
+.sugestoes-carousel img {
+  -webkit-user-drag: none;
 }
 
 .sugestoes-carousel::-webkit-scrollbar {
-  height: 4px;
+  height: 10px;
 }
 
 .sugestoes-carousel::-webkit-scrollbar-track {
   background: var(--charcoal-04);
-  border-radius: 2px;
+  border-radius: 5px;
 }
 
 .sugestoes-carousel::-webkit-scrollbar-thumb {
   background: var(--charcoal-40);
-  border-radius: 2px;
+  border-radius: 5px;
+}
+
+.sugestoes-carousel::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-gray);
 }
 
 .sugestao-card {
