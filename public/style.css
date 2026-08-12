@@ -1730,6 +1730,7 @@ select:focus {
 
 .modal-detalhes-full .detalhes-poster {
   flex: 0 0 160px;
+  align-self: flex-start;
 }
 
 .modal-detalhes-full .detalhes-poster img {
@@ -1776,6 +1777,7 @@ select:focus {
 
 .modal-confirm-full .modal-poster {
   flex: 0 0 140px;
+  align-self: flex-start;
 }
 
 .modal-confirm-full .modal-poster img {
