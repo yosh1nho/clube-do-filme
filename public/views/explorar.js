@@ -103,10 +103,9 @@ function initExplorar() {
     dragStartX = e.clientX;
     dragStartScroll = sugestoesGrid.scrollLeft;
     sugestoesGrid.classList.add('dragging');
-    sugestoesGrid.setPointerCapture(e.pointerId);
   });
 
-  sugestoesGrid.addEventListener('pointermove', (e) => {
+  window.addEventListener('mousemove', (e) => {
     if (!isDragging) return;
     const dx = e.clientX - dragStartX;
     dragMoved = Math.max(dragMoved, Math.abs(dx));
@@ -118,7 +117,7 @@ function initExplorar() {
     sugestoesGrid.classList.remove('dragging');
   }
 
-  sugestoesGrid.addEventListener('pointerup', endDrag);
+  window.addEventListener('mouseup', endDrag);
   sugestoesGrid.addEventListener('pointercancel', endDrag);
 
   sugestoesGrid.addEventListener('click', (e) => {

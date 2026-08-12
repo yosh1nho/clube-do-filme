@@ -28,23 +28,34 @@ async function apiFetch(path, opts = {}) {
   return text ? JSON.parse(text) : null;
 }
 
+function hojeLocal() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(new Date());
+}
+
 async function fecharExpiradas() {
-  const hoje = new Date().toISOString().split('T')[0];
+  const hoje = hojeLocal();
   try {
     // Primeiro busca as expiradas para saber se há alguma
     const expiradas = await apiFetch(
-      `quinzenas?select=id&status=eq.EM_CARTAZ&data_fim=lte.${hoje}`
+      `quinzenas?select=id&status=eq.EM_CARTAZ&data_fim=lt.${hoje}`
     );
-    
+
     // Só fecha e promove se realmente há expiradas
     if (Array.isArray(expiradas) && expiradas.length > 0) {
-      await apiFetch(`quinzenas?status=eq.EM_CARTAZ&data_fim=lte.${hoje}`, {
+      await apiFetch(`quinzenas?status=eq.EM_CARTAZ&data_fim=lt.${hoje}`, {
         method: 'PATCH',
         headers: { 'Prefer': 'return=minimal' },
         body: JSON.stringify({ status: 'ENCERRADA' })
       });
-      
-      const aguardando = await apiFetch('quinzenas?select=id&status=eq.AGUARDANDO&order=data_inicio.asc&limit=1');
+
+      const aguardando = await apiFetch(
+        `quinzenas?select=id&status=eq.AGUARDANDO&data_inicio=lte.${hoje}&order=data_inicio.asc&limit=1`
+      );
       if (Array.isArray(aguardando) && aguardando.length > 0) {
         await apiFetch(`quinzenas?id=eq.${aguardando[0].id}`, {
           method: 'PATCH',
@@ -52,9 +63,15 @@ async function fecharExpiradas() {
           body: JSON.stringify({ status: 'EM_CARTAZ' })
         });
       }
+      console.log(`fecharExpiradas: fechadas ${expiradas.length}, promovida ${aguardando && aguardando.length ? 'sim' : 'nao'}`);
     }
+    return { fechadas: Array.isArray(expiradas) ? expiradas.length : 0 };
   } catch (err) {
     console.error('fecharExpiradas error:', err.message);
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      console.warn('fecharExpiradas: SUPABASE_SERVICE_ROLE_KEY ausente - update pode ser bloqueado pela RLS');
+    }
+    return { fechadas: 0, error: err.message };
   }
 }
 
@@ -297,7 +314,7 @@ router.post('/', async (req, res) => {
     await fecharExpiradas();
 
     // Verifica se há quinzena EM_CARTAZ ativa via REST API (service key bypassa RLS)
-    const hojeStr = new Date().toISOString().split('T')[0];
+    const hojeStr = hojeLocal();
     let quinzenaAtiva = null;
 
     try {

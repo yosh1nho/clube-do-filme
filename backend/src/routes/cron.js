@@ -3,9 +3,18 @@ const supabase = require('../supabase');
 
 const router = Router();
 
+function hojeLocal() {
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit'
+  }).format(new Date());
+}
+
 router.get('/fechar-quinzenas', async (req, res) => {
   try {
-    const hoje = new Date().toISOString().split('T')[0];
+    const hoje = hojeLocal();
     const sb = supabase.serviceClient || supabase;
 
     if (!supabase.serviceClient) {
@@ -16,7 +25,7 @@ router.get('/fechar-quinzenas', async (req, res) => {
       .from('quinzenas')
       .update({ status: 'ENCERRADA' })
       .eq('status', 'EM_CARTAZ')
-      .lte('data_fim', hoje)
+      .lt('data_fim', hoje)
       .select('id');
 
     if (errClose) {
@@ -30,6 +39,7 @@ router.get('/fechar-quinzenas', async (req, res) => {
         .from('quinzenas')
         .select('id')
         .eq('status', 'AGUARDANDO')
+        .lte('data_inicio', hoje)
         .order('data_inicio', { ascending: true })
         .limit(1)
         .maybeSingle();
