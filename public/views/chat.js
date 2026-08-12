@@ -187,6 +187,7 @@ async function initChat(quinzenaId, opts = {}) {
     }
 
     btnEmoji.addEventListener('click', (e) => {
+      if (e.target !== btnEmoji) return;
       e.stopPropagation();
       if (document.querySelector('.emoji-popover')) {
         fecharEmojiPopover();
@@ -207,7 +208,8 @@ async function initChat(quinzenaId, opts = {}) {
       btnEmoji.appendChild(popover);
 
       const closeHandler = (ev) => {
-        if (!popover.contains(ev.target) && ev.target !== btnEmoji) {
+        const path = ev.composedPath ? ev.composedPath() : [];
+        if (!path.includes(popover) && !path.includes(btnEmoji)) {
           fecharEmojiPopover();
           document.removeEventListener('click', closeHandler);
         }

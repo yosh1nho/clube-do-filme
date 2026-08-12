@@ -229,7 +229,8 @@ function initReviewCard(avaliacao, usuarioLogadoId, onRefresh, onEdit) {
     addBtn.appendChild(popover);
 
     const closeHandler = (e) => {
-      if (!popover.contains(e.target) && e.target !== addBtn) {
+      const path = e.composedPath ? e.composedPath() : [];
+      if (!path.includes(popover) && !path.includes(addBtn)) {
         popover.remove();
         document.removeEventListener('click', closeHandler);
       }
