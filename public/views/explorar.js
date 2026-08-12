@@ -120,11 +120,18 @@ function initExplorar() {
   window.addEventListener('mouseup', endDrag);
   sugestoesGrid.addEventListener('pointercancel', endDrag);
 
+  // PREVINE O ARRASTO NATIVO DA IMAGEM E ELEMENTOS
+  sugestoesGrid.addEventListener('dragstart', (e) => {
+    e.preventDefault();
+  });
+
   sugestoesGrid.addEventListener('click', (e) => {
     if (dragMoved > 6) {
       e.stopPropagation();
       e.preventDefault();
     }
+    // Redefine a variável sempre que um clique for processado
+    dragMoved = 0;
   }, true);
 
   sugestoesGrid.addEventListener('wheel', (e) => {
@@ -233,6 +240,8 @@ function initExplorar() {
         img.src = f.poster;
         img.alt = f.titulo;
         img.loading = 'lazy';
+        // DESATIVA O ARRASTO NATIVO DA IMAGEM
+        img.draggable = false;
         card.appendChild(img);
       } else {
         const placeholder = document.createElement('div');
