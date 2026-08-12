@@ -210,8 +210,25 @@ function initReviewCard(avaliacao, usuarioLogadoId, onRefresh, onEdit) {
     const popover = document.createElement('div');
     popover.className = 'emoji-popover';
 
+    const header = document.createElement('div');
+    header.className = 'emoji-popover-header';
+
+    const title = document.createElement('span');
+    title.className = 'emoji-popover-title';
+    title.textContent = 'Reações';
+
+    const btnClose = document.createElement('button');
+    btnClose.type = 'button';
+    btnClose.className = 'emoji-popover-close';
+    btnClose.textContent = '✕';
+    btnClose.title = 'Fechar';
+    btnClose.addEventListener('click', () => popover.remove());
+
+    header.appendChild(title);
+    header.appendChild(btnClose);
+
     const picker = document.createElement('emoji-picker');
-    picker.style.cssText = 'width:320px;height:350px;';
+    picker.style.cssText = 'width:320px;height:320px;';
 
     picker.addEventListener('emoji-click', async (e) => {
       const emoji = e.detail.unicode;
@@ -224,6 +241,7 @@ function initReviewCard(avaliacao, usuarioLogadoId, onRefresh, onEdit) {
       onRefresh?.();
     });
 
+    popover.appendChild(header);
     popover.appendChild(picker);
     addBtn.style.position = 'relative';
     addBtn.appendChild(popover);

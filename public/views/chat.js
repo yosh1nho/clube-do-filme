@@ -197,6 +197,23 @@ async function initChat(quinzenaId, opts = {}) {
       const popover = document.createElement('div');
       popover.className = 'emoji-popover';
 
+      const header = document.createElement('div');
+      header.className = 'emoji-popover-header';
+
+      const title = document.createElement('span');
+      title.className = 'emoji-popover-title';
+      title.textContent = 'Emojis';
+
+      const btnClose = document.createElement('button');
+      btnClose.type = 'button';
+      btnClose.className = 'emoji-popover-close';
+      btnClose.textContent = '✕';
+      btnClose.title = 'Fechar';
+      btnClose.addEventListener('click', fecharEmojiPopover);
+
+      header.appendChild(title);
+      header.appendChild(btnClose);
+
       const picker = document.createElement('emoji-picker');
       picker.style.cssText = 'width:320px;height:320px;';
 
@@ -204,6 +221,7 @@ async function initChat(quinzenaId, opts = {}) {
         inserirEmoji(ev.detail.unicode);
       });
 
+      popover.appendChild(header);
       popover.appendChild(picker);
       btnEmoji.appendChild(popover);
 

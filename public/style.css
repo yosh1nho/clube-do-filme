@@ -868,7 +868,44 @@ select:focus {
   border: var(--border-light);
   border-radius: var(--radius-card);
   box-shadow: 0 4px 24px rgba(0,0,0,0.12);
-  padding: 4px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.emoji-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px var(--space-3);
+  border-bottom: var(--border-light);
+}
+
+.emoji-popover-title {
+  font-size: var(--text-caption);
+  font-weight: var(--weight-heading);
+  color: var(--charcoal);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.emoji-popover-close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: transparent;
+  color: var(--muted-gray);
+  font-size: 1rem;
+  cursor: pointer;
+  border-radius: var(--radius-standard);
+  transition: all 0.15s;
+}
+
+.emoji-popover-close:hover {
+  background: var(--charcoal-04);
+  color: var(--charcoal);
 }
 
 .emoji-popover emoji-picker {
