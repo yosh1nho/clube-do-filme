@@ -1,5 +1,7 @@
 const sb = window.__supabase;
 
+import { initChat } from './chat.js';
+
 function getToken() {
   return sb.auth.getSession().then(({ data }) => data.session?.access_token);
 }
@@ -1039,6 +1041,9 @@ async function renderEmCartaz(data, container) {
   await refreshReviews();
   reviewsSection.appendChild(reviewsList);
   container.appendChild(reviewsSection);
+
+  const chat = await initChat(q.id, { usuarios: data.usuarios });
+  container.appendChild(chat);
   return container;
 }
 

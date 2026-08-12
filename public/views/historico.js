@@ -1,5 +1,7 @@
 const sb = window.__supabase;
 
+import { initChat } from './chat.js';
+
 async function apiFetch(url, opts = {}) {
   const token = await sb.auth.getSession().then(({ data }) => data.session?.access_token);
   const res = await fetch(url, {
@@ -366,6 +368,9 @@ async function abrirDetalhes(q) {
 
   reviewsSection.appendChild(reviewsList);
   content.appendChild(reviewsSection);
+
+  const chat = await initChat(q.id, { readonly: true });
+  content.appendChild(chat);
 }
 
 export { initHistorico };

@@ -23,6 +23,7 @@ app.use('/api/usuarios', require('./routes/usuarios'));
 app.use('/api/tmdb', require('./routes/tmdb'));
 app.use('/api/quinzenas', require('./routes/quinzenas'));
 app.use('/api/avaliacoes', require('./routes/avaliacoes'));
+app.use('/api/mensagens', require('./routes/mensagens'));
 app.use('/api/ranking', require('./routes/ranking'));
 app.use('/api/cron', require('./routes/cron'));
 app.use('/api/backfill', require('./routes/backfill'));

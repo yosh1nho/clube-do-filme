@@ -1,5 +1,7 @@
 const supabase = window.__supabase;
 
+import { cleanupChats } from './chat.js';
+
 let currentView = 'quinzena';
 
 async function logout() {
@@ -31,6 +33,7 @@ async function loadView(viewName) {
     
     // 2. O SEGREDO AQUI: Limpa a tela SÓ QUANDO o novo conteúdo já está em mãos, 
     // imediatamente antes de inseri-lo.
+    cleanupChats();
     main.innerHTML = '';
     main.appendChild(viewNode);
     
