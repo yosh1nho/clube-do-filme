@@ -1065,6 +1065,28 @@ select:focus {
   flex-shrink: 0;
 }
 
+.chat-emoji-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border: var(--border-light);
+  border-radius: var(--radius-standard);
+  background: var(--off-white);
+  font-size: 1.25rem;
+  cursor: pointer;
+  color: var(--muted-gray);
+  flex-shrink: 0;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.chat-emoji-btn:hover {
+  border-color: var(--charcoal-40);
+  color: var(--charcoal);
+}
+
 /* --- Modal --- */
 .modal-overlay {
   position: fixed;

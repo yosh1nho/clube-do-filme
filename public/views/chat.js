@@ -160,11 +160,60 @@ async function initChat(quinzenaId, opts = {}) {
     btnSend.className = 'btn btn-primary chat-send';
     btnSend.textContent = 'Enviar';
 
+    const btnEmoji = document.createElement('button');
+    btnEmoji.type = 'button';
+    btnEmoji.className = 'chat-emoji-btn';
+    btnEmoji.textContent = '😊';
+    btnEmoji.title = 'Emojis';
+
     function autoResize() {
       input.style.height = 'auto';
       input.style.height = Math.min(input.scrollHeight, 120) + 'px';
     }
     input.addEventListener('input', autoResize);
+
+    function fecharEmojiPopover() {
+      document.querySelector('.emoji-popover')?.remove();
+    }
+
+    function inserirEmoji(emoji) {
+      const start = input.selectionStart ?? input.value.length;
+      const end = input.selectionEnd ?? input.value.length;
+      input.value = input.value.slice(0, start) + emoji + input.value.slice(end);
+      const novoPos = start + emoji.length;
+      input.setSelectionRange(novoPos, novoPos);
+      input.focus();
+      autoResize();
+    }
+
+    btnEmoji.addEventListener('click', (e) => {
+      e.stopPropagation();
+      if (document.querySelector('.emoji-popover')) {
+        fecharEmojiPopover();
+        return;
+      }
+
+      const popover = document.createElement('div');
+      popover.className = 'emoji-popover';
+
+      const picker = document.createElement('emoji-picker');
+      picker.style.cssText = 'width:320px;height:320px;';
+
+      picker.addEventListener('emoji-click', (ev) => {
+        inserirEmoji(ev.detail.unicode);
+      });
+
+      popover.appendChild(picker);
+      btnEmoji.appendChild(popover);
+
+      const closeHandler = (ev) => {
+        if (!popover.contains(ev.target) && ev.target !== btnEmoji) {
+          fecharEmojiPopover();
+          document.removeEventListener('click', closeHandler);
+        }
+      };
+      setTimeout(() => document.addEventListener('click', closeHandler), 0);
+    });
 
     async function enviar() {
       const texto = input.value.trim();
@@ -201,6 +250,7 @@ async function initChat(quinzenaId, opts = {}) {
       }
     });
 
+    form.appendChild(btnEmoji);
     form.appendChild(input);
     form.appendChild(btnSend);
     section.appendChild(form);
