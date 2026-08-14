@@ -3220,5 +3220,47 @@ select:focus {
   }
 }
 
+/* --- Modal de Instalação iOS / PWA --- */
+.modal-ios-install {
+  max-width: 420px;
+}
+
+.ios-install-steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.ios-step-item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-3);
+  padding: var(--space-3);
+  background-color: var(--charcoal-04);
+  border-radius: var(--radius-standard);
+}
+
+.ios-step-number {
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background-color: var(--charcoal);
+  color: var(--off-white);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: var(--weight-special);
+  flex-shrink: 0;
+}
+
+.ios-step-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+
 
 

@@ -300,14 +300,36 @@ function initPerfil() {
     btnPw.textContent = 'Alterar Senha';
   });
 
-  card.appendChild(title);
+  const pwaDivider = document.createElement('hr');
+  pwaDivider.className = 'perfil-divider';
 
-  const cardBody = document.createElement('div');
+  const pwaTitle = document.createElement('h3');
+  pwaTitle.className = 'card-title';
+  pwaTitle.textContent = 'Aplicativo no Celular';
+  pwaTitle.style.marginBottom = 'var(--space-2)';
+
+  const pwaDesc = document.createElement('p');
+  pwaDesc.className = 'caption text-muted';
+  pwaDesc.textContent = 'Adicione o Quinzena na tela de início do seu iPhone ou Android para ter abertura instantânea em tela cheia.';
+  pwaDesc.style.marginBottom = 'var(--space-4)';
+
+  const btnInstall = document.createElement('button');
+  btnInstall.type = 'button';
+  btnInstall.className = 'btn btn-outline';
+  btnInstall.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Instalar Aplicativo';
+  btnInstall.addEventListener('click', () => {
+    if (window.__promptInstallPWA) window.__promptInstallPWA();
+  });
+
   cardBody.appendChild(avatarGroup);
   cardBody.appendChild(form);
   cardBody.appendChild(divider);
   cardBody.appendChild(securityTitle);
   cardBody.appendChild(pwForm);
+  cardBody.appendChild(pwaDivider);
+  cardBody.appendChild(pwaTitle);
+  cardBody.appendChild(pwaDesc);
+  cardBody.appendChild(btnInstall);
 
   card.appendChild(cardBody);
   container.appendChild(card);
