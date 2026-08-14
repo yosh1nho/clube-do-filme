@@ -1,6 +1,7 @@
 const sb = window.__supabase;
 
 import { initChat } from './chat.js';
+import { toggleWatchlistMovie, isMovieInWatchlist, fetchWatchlist } from './watchlist.js';
 
 function getToken() {
   return sb.auth.getSession().then(({ data }) => data.session?.access_token);
@@ -380,12 +381,12 @@ function abrirModalDetalhesFilme(filme, opts = {}) {
 
   apiFetch(`/api/tmdb/detalhes/${filme.tmdb_id}`).then(detalhes => {
     loading.remove();
-    renderModalDetalhesContent(modal, filme, detalhes, { confirmavel, onConfirm, onClose });
+    renderModalDetalhesContent(modal, filme, detalhes, { confirmavel, onConfirm, onClose, onWatchlistChange: opts.onWatchlistChange });
   });
 }
 
 function renderModalDetalhesContent(modal, filme, detalhes, opts = {}) {
-  const { confirmavel = false, onConfirm, onClose } = opts;
+  const { confirmavel = false, onConfirm, onClose, onWatchlistChange } = opts;
 
   const body = document.createElement('div');
   body.className = 'modal-body';
@@ -491,6 +492,47 @@ function renderModalDetalhesContent(modal, filme, detalhes, opts = {}) {
   const footer = document.createElement('div');
   footer.className = 'modal-footer';
 
+  // Botão de Watchlist (Quero Indicar)
+  const btnWatchlist = document.createElement('button');
+  btnWatchlist.className = 'btn btn-outline modal-btn-watchlist';
+  btnWatchlist.innerHTML = '<span>🔖</span> Quero Indicar';
+
+  isMovieInWatchlist(filme.tmdb_id).then(isSaved => {
+    if (isSaved) {
+      btnWatchlist.classList.add('active');
+      btnWatchlist.innerHTML = '<span>✓</span> Na Minha Lista';
+    }
+  }).catch(() => {});
+
+  btnWatchlist.addEventListener('click', async () => {
+    btnWatchlist.disabled = true;
+    try {
+      const res = await toggleWatchlistMovie({
+        tmdb_id: filme.tmdb_id,
+        titulo: filme.titulo || detalhes?.titulo,
+        poster: filme.poster || detalhes?.poster,
+        ano: filme.ano || detalhes?.ano,
+        sinopse: filme.sinopse || detalhes?.sinopse,
+        nota_tmdb: filme.nota_tmdb || detalhes?.nota_tmdb,
+        generos: detalhes?.generos
+      });
+      if (res.saved) {
+        btnWatchlist.classList.add('active');
+        btnWatchlist.innerHTML = '<span>✓</span> Na Minha Lista';
+      } else {
+        btnWatchlist.classList.remove('active');
+        btnWatchlist.innerHTML = '<span>🔖</span> Quero Indicar';
+      }
+      onWatchlistChange?.(res.saved);
+    } catch (err) {
+      console.error('Erro ao alternar watchlist:', err);
+    } finally {
+      btnWatchlist.disabled = false;
+    }
+  });
+
+  footer.appendChild(btnWatchlist);
+
   if (confirmavel) {
     const btnCancel = document.createElement('button');
     btnCancel.className = 'btn btn-outline';
@@ -527,7 +569,7 @@ function renderModalDetalhesContent(modal, filme, detalhes, opts = {}) {
 
 function renderEscolhendo(data, container) {
   const header = document.createElement('div');
-  header.style.cssText = 'text-align:center;margin-bottom:40px;';
+  header.style.cssText = 'text-align:center;margin-bottom:32px;';
 
   const title = document.createElement('h2');
   title.className = 'sub-heading';
@@ -536,7 +578,7 @@ function renderEscolhendo(data, container) {
   const desc = document.createElement('p');
   desc.className = 'body-large text-muted';
   desc.style.marginTop = '8px';
-  desc.textContent = 'Busque o filme que você quer assistir nesta quinzena';
+  desc.textContent = 'Busque um filme ou escolha um dos seus salvos para esta quinzena';
 
   header.appendChild(title);
   header.appendChild(desc);
@@ -558,13 +600,94 @@ function renderEscolhendo(data, container) {
     header.appendChild(btnVoltar);
   }
 
+  container.appendChild(header);
+
+  // Seção de Escolha Rápida da Watchlist ("Quero Indicar")
+  const watchlistSection = document.createElement('div');
+  watchlistSection.className = 'escolhendo-watchlist-section';
+  watchlistSection.style.display = 'none';
+  container.appendChild(watchlistSection);
+
+  fetchWatchlist().then(items => {
+    if (Array.isArray(items) && items.length > 0) {
+      watchlistSection.innerHTML = '';
+
+      const head = document.createElement('div');
+      head.className = 'sugestoes-head';
+
+      const wTitle = document.createElement('h3');
+      wTitle.className = 'sugestoes-title';
+      wTitle.textContent = 'Escolher da sua lista ("Quero Indicar")';
+
+      const wCount = document.createElement('span');
+      wCount.className = 'caption text-muted';
+      wCount.textContent = `${items.length} ${items.length === 1 ? 'filme' : 'filmes'}`;
+
+      head.appendChild(wTitle);
+      head.appendChild(wCount);
+      watchlistSection.appendChild(head);
+
+      const carousel = document.createElement('div');
+      carousel.className = 'sugestoes-carousel escolhendo-watchlist-carousel';
+
+      items.forEach(f => {
+        const card = document.createElement('div');
+        card.className = 'sugestao-card';
+        card.style.cursor = 'pointer';
+
+        if (f.poster_url) {
+          const img = document.createElement('img');
+          img.src = f.poster_url;
+          img.alt = f.titulo;
+          img.loading = 'lazy';
+          img.draggable = false;
+          card.appendChild(img);
+        } else {
+          const placeholder = document.createElement('div');
+          placeholder.style.cssText = 'width:100%;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;background:var(--charcoal-04);color:var(--muted-gray);font-size:1.5rem;';
+          placeholder.textContent = '🎬';
+          card.appendChild(placeholder);
+        }
+
+        const info = document.createElement('div');
+        info.className = 'sugestao-card-info';
+        const t = document.createElement('p');
+        t.className = 'sugestao-card-title';
+        t.textContent = f.titulo;
+        info.appendChild(t);
+        if (f.ano) {
+          const y = document.createElement('p');
+          y.className = 'sugestao-card-ano';
+          y.textContent = f.ano;
+          info.appendChild(y);
+        }
+        card.appendChild(info);
+
+        card.addEventListener('click', () => {
+          abrirModal({
+            tmdb_id: f.tmdb_id,
+            titulo: f.titulo,
+            poster: f.poster_url,
+            ano: f.ano,
+            sinopse: f.sinopse
+          });
+        });
+
+        carousel.appendChild(card);
+      });
+
+      watchlistSection.appendChild(carousel);
+      watchlistSection.style.display = 'block';
+    }
+  }).catch(() => {});
+
   const searchGroup = document.createElement('div');
   searchGroup.className = 'search-group';
 
   const searchInput = document.createElement('input');
   searchInput.type = 'text';
   searchInput.id = 'search-movie';
-  searchInput.placeholder = 'Buscar filme...';
+  searchInput.placeholder = 'Buscar filme no catálogo...';
   searchInput.className = 'search-input';
 
   const searchBtn = document.createElement('button');
@@ -582,9 +705,8 @@ function renderEscolhendo(data, container) {
   statusMsg.className = 'caption text-muted';
   statusMsg.style.cssText = 'text-align:center;margin-top:32px;';
   statusMsg.id = 'search-status';
-  statusMsg.textContent = 'Faça uma busca para encontrar filmes';
+  statusMsg.textContent = 'Ou faça uma busca para encontrar novos filmes';
 
-  container.appendChild(header);
   container.appendChild(searchGroup);
   container.appendChild(statusMsg);
   container.appendChild(resultsGrid);

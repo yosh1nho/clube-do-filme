@@ -1,4 +1,5 @@
 import { apiFetch, abrirModalDetalhesFilme } from './quinzena.js';
+import { toggleWatchlistMovie, fetchWatchlist } from './watchlist.js';
 
 function initExplorar() {
   const container = document.createElement('div');
@@ -76,6 +77,61 @@ function initExplorar() {
 
   container.appendChild(sugestoesSection);
 
+  // Armazena conjunto de IDs salvos na watchlist para sincronização visual
+  let savedIds = new Set();
+
+  function atualizarBotoesBookmark() {
+    container.querySelectorAll('.card-bookmark-btn').forEach(btn => {
+      const id = Number(btn.dataset.tmdbId);
+      const isSaved = savedIds.has(id);
+      btn.classList.toggle('active', isSaved);
+      btn.title = isSaved ? 'Salvo em Quero Indicar (clique para remover)' : 'Guardar em Quero Indicar';
+      btn.innerHTML = isSaved
+        ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>'
+        : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>';
+    });
+  }
+
+  function criarBotaoBookmark(f) {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'card-bookmark-btn';
+    btn.dataset.tmdbId = f.tmdb_id;
+    const isSaved = savedIds.has(Number(f.tmdb_id));
+    btn.classList.toggle('active', isSaved);
+    btn.title = isSaved ? 'Salvo em Quero Indicar' : 'Guardar em Quero Indicar';
+    btn.innerHTML = isSaved
+      ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>'
+      : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>';
+
+    btn.addEventListener('click', async (e) => {
+      e.stopPropagation();
+      e.preventDefault();
+      btn.disabled = true;
+      try {
+        const res = await toggleWatchlistMovie(f);
+        if (res.saved) {
+          savedIds.add(Number(f.tmdb_id));
+        } else {
+          savedIds.delete(Number(f.tmdb_id));
+        }
+        atualizarBotoesBookmark();
+      } catch (err) {
+        console.error('Erro ao alternar watchlist:', err);
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    return btn;
+  }
+
+  // Carrega lista salva inicialmente
+  fetchWatchlist().then(items => {
+    savedIds = new Set((items || []).map(i => Number(i.tmdb_id)));
+    atualizarBotoesBookmark();
+  }).catch(() => {});
+
   function scrollSugestoes(dir) {
     const card = sugestoesGrid.querySelector('.sugestao-card');
     const passo = card ? card.offsetWidth + 12 : 400;
@@ -130,7 +186,6 @@ function initExplorar() {
       e.stopPropagation();
       e.preventDefault();
     }
-    // Redefine a variável sempre que um clique for processado
     dragMoved = 0;
   }, true);
 
@@ -180,6 +235,10 @@ function initExplorar() {
           poster.textContent = 'Sem poster';
         }
 
+        // Botão de salvar na Watchlist
+        const bookmarkBtn = criarBotaoBookmark(f);
+        poster.appendChild(bookmarkBtn);
+
         const info = document.createElement('div');
         info.className = 'movie-info';
 
@@ -198,7 +257,15 @@ function initExplorar() {
         card.appendChild(info);
 
         card.addEventListener('click', () => {
-          abrirModalDetalhesFilme(f, { confirmavel: false, mostrarClose: false });
+          abrirModalDetalhesFilme(f, {
+            confirmavel: false,
+            mostrarClose: true,
+            onWatchlistChange: (saved) => {
+              if (saved) savedIds.add(Number(f.tmdb_id));
+              else savedIds.delete(Number(f.tmdb_id));
+              atualizarBotoesBookmark();
+            }
+          });
         });
 
         resultsGrid.appendChild(card);
@@ -231,8 +298,18 @@ function initExplorar() {
     sugestoes.forEach(f => {
       const card = document.createElement('div');
       card.className = 'sugestao-card';
+      card.dataset.tmdbId = f.tmdb_id;
+
       card.addEventListener('click', () => {
-        abrirModalDetalhesFilme(f, { confirmavel: false, mostrarClose: false });
+        abrirModalDetalhesFilme(f, {
+          confirmavel: false,
+          mostrarClose: true,
+          onWatchlistChange: (saved) => {
+            if (saved) savedIds.add(Number(f.tmdb_id));
+            else savedIds.delete(Number(f.tmdb_id));
+            atualizarBotoesBookmark();
+          }
+        });
       });
 
       if (f.poster) {
@@ -240,7 +317,6 @@ function initExplorar() {
         img.src = f.poster;
         img.alt = f.titulo;
         img.loading = 'lazy';
-        // DESATIVA O ARRASTO NATIVO DA IMAGEM
         img.draggable = false;
         card.appendChild(img);
       } else {
@@ -249,6 +325,10 @@ function initExplorar() {
         placeholder.textContent = '?';
         card.appendChild(placeholder);
       }
+
+      // Botão de salvar no card de sugestão
+      const bookmarkBtn = criarBotaoBookmark(f);
+      card.appendChild(bookmarkBtn);
 
       const info = document.createElement('div');
       info.className = 'sugestao-card-info';

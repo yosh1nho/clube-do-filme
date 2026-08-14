@@ -25,6 +25,7 @@ app.use('/api/quinzenas', require('./routes/quinzenas'));
 app.use('/api/avaliacoes', require('./routes/avaliacoes'));
 app.use('/api/mensagens', require('./routes/mensagens'));
 app.use('/api/ranking', require('./routes/ranking'));
+app.use('/api/watchlist', require('./routes/watchlist'));
 app.use('/api/cron', require('./routes/cron'));
 app.use('/api/backfill', require('./routes/backfill'));
 
