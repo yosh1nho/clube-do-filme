@@ -321,6 +321,9 @@ function initPerfil() {
     if (window.__promptInstallPWA) window.__promptInstallPWA();
   });
 
+  card.appendChild(title);
+
+  const cardBody = document.createElement('div');
   cardBody.appendChild(avatarGroup);
   cardBody.appendChild(form);
   cardBody.appendChild(divider);
