@@ -346,13 +346,25 @@ router.get('/', async (req, res) => {
       });
     }
 
+    // IDs das conquistas calculadas automaticamente
+    const dynamicBadgeIds = [
+      'melhor_curador',
+      'critico_implacavel',
+      'otimista',
+      'do_contra',
+      'maratonista',
+      'resenhista',
+      'arqueologo',
+      'filme_polemico'
+    ];
+
     // Sincronização persistente na tabela usuario_badges
     try {
       if (conquistas.length > 0) {
-        // Marca todas as badges existentes no banco como ativa: false antes de atualizar os atuais líderes
-        await sb.from('usuario_badges').update({ ativa: false }).neq('id', '00000000-0000-0000-0000-000000000000');
+        // Marca apenas as badges dinâmicas como ativa: false antes de atualizar os líderes atuais
+        await sb.from('usuario_badges').update({ ativa: false }).in('badge_id', dynamicBadgeIds);
 
-        // Sincronização das conquistas ativas
+        // Sincronização das conquistas automáticas ativas
         for (const c of conquistas) {
           if (c.usuario?.id) {
             const { data: existente } = await sb
@@ -386,8 +398,29 @@ router.get('/', async (req, res) => {
           }
         }
       }
+
+      // Busca e mescla badges manuais/customizadas cadastradas no banco
+      const { data: allBadgesDb } = await sb
+        .from('usuario_badges')
+        .select('*, usuarios(id, nome, avatar_url)');
+
+      if (allBadgesDb && allBadgesDb.length) {
+        allBadgesDb.forEach(b => {
+          // Se for uma badge manual/customizada (não faz parte das 8 automáticas) e estiver ativa
+          if (!dynamicBadgeIds.includes(b.badge_id) && b.ativa) {
+            conquistas.push({
+              id: b.badge_id,
+              titulo: b.titulo,
+              tipoIcone: b.tipo_icone,
+              descricao: b.descricao,
+              usuario: b.usuarios || { id: b.usuario_id, nome: 'Membro' },
+              destaque: b.destaque || b.categoria || 'Especial',
+              categoria: b.categoria || 'especial'
+            });
+          }
+        });
+      }
     } catch (errSync) {
-      // Se a tabela ainda não tiver sido criada pelo usuário no SQL Editor, não quebra a requisição
       console.warn('Aviso: Sincronização de usuario_badges pendente de migração SQL:', errSync.message);
     }
 
