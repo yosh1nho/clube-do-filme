@@ -20,7 +20,7 @@ async function uploadAvatar(file) {
   return publicUrl;
 }
 
-function initPerfil() {
+async function initPerfil() {
   const container = document.createElement('div');
   container.className = 'perfil-container';
 
@@ -74,7 +74,7 @@ function initPerfil() {
   const avatarName = document.createElement('p');
   avatarName.className = 'card-title';
   avatarName.id = 'perfil-nome-display';
-  avatarName.textContent = 'Carregando...';
+  avatarName.textContent = '...';
 
   const userBadgeDisplay = document.createElement('span');
   userBadgeDisplay.className = 'user-badge-tag perfil-active-badge-tag';
@@ -340,50 +340,45 @@ function initPerfil() {
   // Seção de Conquistas Pessoais e Afinidades no Perfil
   const statsSection = document.createElement('div');
   statsSection.className = 'perfil-stats-section';
-  statsSection.style.marginTop = 'var(--space-6)';
   container.appendChild(statsSection);
 
-  sb.auth.getSession().then(async ({ data: { session } }) => {
-    if (!session) return;
+  // Carregamento síncrono e unificado dos dados
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
     const userId = session.user.id;
     const token = session.access_token;
 
-    // Carrega dados do usuário
-    const resUser = await fetch('/api/usuarios/me', {
-      headers: { Authorization: `Bearer ${token}` }
-    });
-    const user = await resUser.json();
-
-    if (user && !user.error) {
-      avatarEmail.textContent = user.email || '';
-      if (user.nome) {
-        nomeInput.value = user.nome;
-        avatarName.textContent = user.nome;
-        avatarLetter.textContent = user.nome.charAt(0).toUpperCase();
-      }
-      if (user.avatar_url) {
-        avatarImg.src = user.avatar_url;
-        avatarImg.style.display = 'block';
-        avatarLetter.style.display = 'none';
-      }
-      if (user.badge_ativa) {
-        userBadgeDisplay.textContent = user.badge_ativa;
-        userBadgeDisplay.style.display = 'inline-block';
-      }
-    }
-
-    // Carrega Conquistas Atuais e Afinidade
     try {
-      const resRank = await fetch('/api/ranking', {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      const data = await resRank.json();
+      const [resUser, resRank] = await Promise.all([
+        fetch('/api/usuarios/me', { headers: { Authorization: `Bearer ${token}` } }),
+        fetch('/api/ranking', { headers: { Authorization: `Bearer ${token}` } })
+      ]);
 
-      if (data && !data.error) {
-        // Conquistas desbloqueadas pelo usuário (prioriza inventário persistente do banco)
-        const inventario = (data.inventarioUsuario && data.inventarioUsuario.length > 0)
-          ? data.inventarioUsuario
-          : (data.conquistas || []).filter(c => c.usuario?.id === userId).map(c => ({
+      const user = await resUser.json();
+      const rankData = await resRank.json();
+
+      if (user && !user.error) {
+        avatarEmail.textContent = user.email || '';
+        if (user.nome) {
+          nomeInput.value = user.nome;
+          avatarName.textContent = user.nome;
+          avatarLetter.textContent = user.nome.charAt(0).toUpperCase();
+        }
+        if (user.avatar_url) {
+          avatarImg.src = user.avatar_url;
+          avatarImg.style.display = 'block';
+          avatarLetter.style.display = 'none';
+        }
+        if (user.badge_ativa) {
+          userBadgeDisplay.textContent = user.badge_ativa;
+          userBadgeDisplay.style.display = 'inline-block';
+        }
+      }
+
+      if (rankData && !rankData.error) {
+        const inventario = (rankData.inventarioUsuario && rankData.inventarioUsuario.length > 0)
+          ? rankData.inventarioUsuario
+          : (rankData.conquistas || []).filter(c => c.usuario?.id === userId).map(c => ({
               badge_id: c.id,
               titulo: c.titulo,
               descricao: c.descricao,
@@ -392,116 +387,108 @@ function initPerfil() {
               ativa: true
             }));
 
-        const minhasAfinidades = (data.afinidade || []).filter(af => af.usuario1.id === userId || af.usuario2.id === userId);
+        const minhasAfinidades = (rankData.afinidade || []).filter(af => af.usuario1.id === userId || af.usuario2.id === userId);
 
-        // Popula seletor de títulos ativos no perfil
         if (inventario.length > 0) {
           badgeGroup.style.display = 'block';
           badgeSelect.innerHTML = '<option value="">Nenhum título exibido</option>';
-          
+
           let badgeAindaValida = false;
           inventario.forEach(c => {
             const opt = document.createElement('option');
             opt.value = c.titulo;
             opt.textContent = `${c.titulo} ${c.destaque ? `(${c.destaque})` : ''} ${c.ativa ? '— Detentor Atual' : ''}`;
-            if (user.badge_ativa === c.titulo) {
+            if (user?.badge_ativa === c.titulo) {
               opt.selected = true;
               badgeAindaValida = true;
             }
             badgeSelect.appendChild(opt);
           });
 
-          if (user.badge_ativa && !badgeAindaValida) {
+          if (user?.badge_ativa && !badgeAindaValida) {
             userBadgeDisplay.style.display = 'none';
           }
         }
 
-        if (inventario.length > 0 || minhasAfinidades.length > 0) {
-          statsSection.innerHTML = '';
+        if (inventario.length > 0) {
+          const conquistasCard = document.createElement('div');
+          conquistasCard.className = 'card perfil-badges-card';
 
-          // Card da Galeria de Conquistas do Usuário
-          if (inventario.length > 0) {
-            const conquistasCard = document.createElement('div');
-            conquistasCard.className = 'card perfil-badges-card';
-            
-            const cTitle = document.createElement('h3');
-            cTitle.className = 'card-title';
-            cTitle.textContent = 'Suas Conquistas no Clube';
-            cTitle.style.marginBottom = 'var(--space-4)';
-            conquistasCard.appendChild(cTitle);
+          const cTitle = document.createElement('h3');
+          cTitle.className = 'card-title';
+          cTitle.textContent = 'Suas Conquistas no Clube';
+          cTitle.style.marginBottom = 'var(--space-4)';
+          conquistasCard.appendChild(cTitle);
 
-            const badgesGrid = document.createElement('div');
-            badgesGrid.className = 'perfil-badges-grid';
+          const badgesGrid = document.createElement('div');
+          badgesGrid.className = 'perfil-badges-grid';
 
-            inventario.forEach(c => {
-              const item = document.createElement('div');
-              item.className = 'perfil-badge-item';
-              item.innerHTML = `
-                <div class="perfil-badge-icon">${getConquistaSvg(c.tipo_icone || c.tipoIcone)}</div>
-                <div class="perfil-badge-info">
-                  <div style="display:flex;align-items:center;gap:6px;">
-                    <strong>${c.titulo}</strong>
-                    ${c.ativa ? '<span class="conquista-stat-badge" style="font-size:0.68rem;padding:1px 6px;">Atual</span>' : ''}
-                  </div>
-                  <span class="caption text-muted">${c.descricao}</span>
-                  ${c.destaque ? `<span class="caption perfil-badge-tag">${c.destaque}</span>` : ''}
+          inventario.forEach(c => {
+            const item = document.createElement('div');
+            item.className = 'perfil-badge-item';
+            item.innerHTML = `
+              <div class="perfil-badge-icon">${getConquistaSvg(c.tipo_icone || c.tipoIcone)}</div>
+              <div class="perfil-badge-info">
+                <div style="display:flex;align-items:center;gap:6px;">
+                  <strong>${c.titulo}</strong>
+                  ${c.ativa ? '<span class="conquista-stat-badge" style="font-size:0.68rem;padding:1px 6px;">Atual</span>' : ''}
                 </div>
-              `;
-              badgesGrid.appendChild(item);
-            });
+                <span class="caption text-muted">${c.descricao}</span>
+                ${c.destaque ? `<span class="caption perfil-badge-tag">${c.destaque}</span>` : ''}
+              </div>
+            `;
+            badgesGrid.appendChild(item);
+          });
 
-            conquistasCard.appendChild(badgesGrid);
-            statsSection.appendChild(conquistasCard);
-          }
+          conquistasCard.appendChild(badgesGrid);
+          statsSection.appendChild(conquistasCard);
+        }
 
-          // Card de Afinidades com Amigos
-          if (minhasAfinidades.length > 0) {
-            const afinidadesCard = document.createElement('div');
-            afinidadesCard.className = 'card perfil-badges-card';
-            afinidadesCard.style.marginTop = 'var(--space-5)';
+        if (minhasAfinidades.length > 0) {
+          const afinidadesCard = document.createElement('div');
+          afinidadesCard.className = 'card perfil-badges-card';
 
-            const aTitle = document.createElement('h3');
-            aTitle.className = 'card-title';
-            aTitle.textContent = 'Sua Sintonia com os Amigos';
-            aTitle.style.marginBottom = 'var(--space-4)';
-            afinidadesCard.appendChild(aTitle);
+          const aTitle = document.createElement('h3');
+          aTitle.className = 'card-title';
+          aTitle.textContent = 'Sua Sintonia com os Amigos';
+          aTitle.style.marginBottom = 'var(--space-4)';
+          afinidadesCard.appendChild(aTitle);
 
-            const afList = document.createElement('div');
-            afList.className = 'perfil-afinidades-list';
+          const afList = document.createElement('div');
+          afList.className = 'perfil-afinidades-list';
 
-            minhasAfinidades.forEach(af => {
-              const outro = af.usuario1.id === userId ? af.usuario2 : af.usuario1;
-              const row = document.createElement('div');
-              row.className = 'perfil-afinidade-row';
-              row.innerHTML = `
-                <div class="perfil-afinidade-user">
-                  <div class="perfil-afinidade-avatar">
-                    ${outro.avatar_url ? `<img src="${outro.avatar_url}">` : outro.nome.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <strong>${outro.nome}</strong>
-                    <p class="caption text-muted">${af.nivel}</p>
-                  </div>
+          minhasAfinidades.forEach(af => {
+            const outro = af.usuario1.id === userId ? af.usuario2 : af.usuario1;
+            const row = document.createElement('div');
+            row.className = 'perfil-afinidade-row';
+            row.innerHTML = `
+              <div class="perfil-afinidade-user">
+                <div class="perfil-afinidade-avatar">
+                  ${outro.avatar_url ? `<img src="${outro.avatar_url}">` : outro.nome.charAt(0).toUpperCase()}
                 </div>
-                <div class="perfil-afinidade-bar-box">
-                  <div class="afinidade-bar-track">
-                    <div class="afinidade-bar-fill" style="width: ${af.porcentagem}%;"></div>
-                  </div>
-                  <span class="caption">${af.porcentagem}%</span>
+                <div>
+                  <strong>${outro.nome}</strong>
+                  <p class="caption text-muted">${af.nivel}</p>
                 </div>
-              `;
-              afList.appendChild(row);
-            });
+              </div>
+              <div class="perfil-afinidade-bar-box">
+                <div class="afinidade-bar-track">
+                  <div class="afinidade-bar-fill" style="width: ${af.porcentagem}%;"></div>
+                </div>
+                <span class="caption">${af.porcentagem}%</span>
+              </div>
+            `;
+            afList.appendChild(row);
+          });
 
-            afinidadesCard.appendChild(afList);
-            statsSection.appendChild(afinidadesCard);
-          }
+          afinidadesCard.appendChild(afList);
+          statsSection.appendChild(afinidadesCard);
         }
       }
     } catch (err) {
-      console.error('Erro ao carregar estatísticas do perfil:', err);
+      console.error('Erro ao carregar dados do perfil:', err);
     }
-  });
+  }
 
   return container;
 }

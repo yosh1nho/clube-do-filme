@@ -504,14 +504,20 @@ select:focus {
 /* --- Perfil --- */
 .perfil-container {
   display: flex;
-  justify-content: center;
-  padding-top: var(--space-7);
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-5);
+  padding-top: var(--space-4);
+  width: 100%;
+  max-width: 520px;
+  margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .perfil-card {
   padding: var(--space-6);
   width: 100%;
-  max-width: 480px;
+  box-sizing: border-box;
 }
 
 .perfil-card .sub-heading {
@@ -2946,11 +2952,21 @@ select:focus {
 }
 
 /* --- Perfil Badges & Afinidades --- */
+.perfil-stats-section {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  box-sizing: border-box;
+}
+
 .perfil-badges-card {
   padding: var(--space-5);
   background-color: var(--cream);
   border: var(--border-light);
   border-radius: var(--radius-card);
+  width: 100%;
+  box-sizing: border-box;
 }
 
 .perfil-badges-grid {

@@ -1,9 +1,9 @@
-const CACHE_NAME = 'quinzena-cache-v2';
+const CACHE_NAME = 'quinzena-cache-v3';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
-  '/style.css?v=2.0',
-  '/app.js?v=2.0',
+  '/style.css?v=2.1',
+  '/app.js?v=2.1',
   '/manifest.json',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
