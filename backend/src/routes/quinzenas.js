@@ -173,7 +173,7 @@ router.get('/atual', async (req, res) => {
       const hoje = new Date().toISOString().split('T')[0];
       const { data: avaliacoes } = await sb
         .from('avaliacoes')
-        .select('*, usuarios(nome, avatar_url), reacoes(*)')
+        .select('*, usuarios(nome, avatar_url, badge_ativa), reacoes(*)')
         .eq('quinzena_id', quinzenaAtual.id);
 
       const dataFim = new Date(quinzenaAtual.data_fim);
@@ -262,7 +262,7 @@ router.get('/', async (req, res) => {
     const sb = authed(token);
     const { data, error } = await sb
       .from('quinzenas')
-      .select('*, filmes(*), usuarios(nome, avatar_url)')
+      .select('*, filmes(*), usuarios(nome, avatar_url, badge_ativa)')
       .neq('status', 'AGUARDANDO')
       .order('data_inicio', { ascending: false });
 

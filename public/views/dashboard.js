@@ -62,7 +62,7 @@ function initDashboard() {
 
   const tabs = [
     { view: 'quinzena', label: 'Quinzena Atual', mobileLabel: 'Quinzena' },
-    { view: 'watchlist', label: 'Quero Indicar', mobileLabel: 'Quero Indicar' },
+    { view: 'watchlist', label: 'Quero Indicar', mobileLabel: 'Indicar' },
     { view: 'explorar', label: 'Explorar', mobileLabel: 'Explorar' },
     { view: 'historico', label: 'Histórico', mobileLabel: 'Histórico' },
     { view: 'ranking', label: 'Ranking', mobileLabel: 'Ranking' },
@@ -102,6 +102,20 @@ function initDashboard() {
   fragment.appendChild(main);
 
   setTimeout(() => loadView('quinzena'), 0);
+
+  // Checagem de novas conquistas em segundo plano
+  setTimeout(async () => {
+    try {
+      const token = await supabase.auth.getSession().then(({ data }) => data.session?.access_token);
+      if (!token) return;
+      const res = await fetch('/api/ranking', { headers: { Authorization: `Bearer ${token}` } });
+      const data = await res.json();
+      if (data && !data.error) {
+        const { verificarNovasConquistas } = await import('./ranking.js');
+        verificarNovasConquistas(data.conquistas, data.usuarioLogadoId);
+      }
+    } catch (e) {}
+  }, 1200);
 
   return fragment;
 }

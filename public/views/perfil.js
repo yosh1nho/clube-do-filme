@@ -1,5 +1,7 @@
 const sb = window.__supabase;
 
+import { getConquistaSvg } from './ranking.js';
+
 async function uploadAvatar(file) {
   const { data: { session } } = await sb.auth.getSession();
   const ext = file.name.split('.').pop();
@@ -74,11 +76,16 @@ function initPerfil() {
   avatarName.id = 'perfil-nome-display';
   avatarName.textContent = 'Carregando...';
 
+  const userBadgeDisplay = document.createElement('span');
+  userBadgeDisplay.className = 'user-badge-tag perfil-active-badge-tag';
+  userBadgeDisplay.style.display = 'none';
+
   const avatarEmail = document.createElement('p');
-  avatarEmail.className = 'caption';
+  avatarEmail.className = 'caption text-muted';
   avatarEmail.id = 'perfil-email';
 
   avatarInfo.appendChild(avatarName);
+  avatarInfo.appendChild(userBadgeDisplay);
   avatarInfo.appendChild(avatarEmail);
 
   avatarGroup.appendChild(avatarWrap);
@@ -98,6 +105,29 @@ function initPerfil() {
   nomeGroup.appendChild(nomeLabel);
   nomeGroup.appendChild(nomeInput);
 
+  // Seletor de Título / Badge Ativa
+  const badgeGroup = document.createElement('div');
+  badgeGroup.className = 'input-group';
+  badgeGroup.id = 'perfil-badge-selector-group';
+  badgeGroup.style.display = 'none';
+
+  const badgeLabel = document.createElement('label');
+  badgeLabel.className = 'caption';
+  badgeLabel.textContent = 'Título / Conquista em Exibição';
+  badgeLabel.htmlFor = 'perfil-badge-select';
+
+  const badgeSelect = document.createElement('select');
+  badgeSelect.className = 'search-input perfil-badge-select';
+  badgeSelect.id = 'perfil-badge-select';
+
+  const defaultOpt = document.createElement('option');
+  defaultOpt.value = '';
+  defaultOpt.textContent = 'Nenhum título exibido';
+  badgeSelect.appendChild(defaultOpt);
+
+  badgeGroup.appendChild(badgeLabel);
+  badgeGroup.appendChild(badgeSelect);
+
   const statusMsg = document.createElement('p');
   statusMsg.className = 'caption perfil-status';
   statusMsg.id = 'perfil-status';
@@ -110,6 +140,7 @@ function initPerfil() {
   btnSalvar.textContent = 'Salvar';
 
   form.appendChild(nomeGroup);
+  form.appendChild(badgeGroup);
   form.appendChild(statusMsg);
   form.appendChild(btnSalvar);
 
@@ -175,21 +206,38 @@ function initPerfil() {
     statusMsg.style.display = 'none';
 
     const { data: { session } } = await sb.auth.getSession();
-    const { error } = await sb
-      .from('usuarios')
-      .upsert({ id: session.user.id, nome: nomeInput.value.trim() })
-      .select()
-      .maybeSingle();
+    const payload = {
+      nome: nomeInput.value.trim(),
+      badge_ativa: badgeSelect.value || null
+    };
 
-    if (error) {
-      statusMsg.textContent = error.message;
-      statusMsg.style.display = 'block';
-    } else {
-      statusMsg.textContent = 'Nome atualizado!';
+    const res = await fetch('/api/usuarios/me', {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${session.access_token}`
+      },
+      body: JSON.stringify(payload)
+    });
+    const result = await res.json();
+
+    if (result && !result.error) {
+      statusMsg.textContent = 'Perfil atualizado com sucesso!';
       statusMsg.style.display = 'block';
       avatarName.textContent = nomeInput.value;
       avatarLetter.textContent = nomeInput.value.charAt(0).toUpperCase();
+
+      if (payload.badge_ativa) {
+        userBadgeDisplay.textContent = payload.badge_ativa;
+        userBadgeDisplay.style.display = 'inline-block';
+      } else {
+        userBadgeDisplay.style.display = 'none';
+      }
+    } else {
+      statusMsg.textContent = result?.error || 'Erro ao salvar';
+      statusMsg.style.display = 'block';
     }
+
     btnSalvar.disabled = false;
     btnSalvar.textContent = 'Salvar';
   });
@@ -264,42 +312,170 @@ function initPerfil() {
   card.appendChild(cardBody);
   container.appendChild(card);
 
-  sb.auth.getSession().then(({ data: { session } }) => {
+  // Seção de Conquistas Pessoais e Afinidades no Perfil
+  const statsSection = document.createElement('div');
+  statsSection.className = 'perfil-stats-section';
+  statsSection.style.marginTop = 'var(--space-6)';
+  container.appendChild(statsSection);
+
+  sb.auth.getSession().then(async ({ data: { session } }) => {
     if (!session) return;
-    sb.from('usuarios')
-      .select('*')
-      .eq('id', session.user.id)
-      .maybeSingle()
-      .then(({ data: user }) => {
-        if (!user) {
-          sb.from('usuarios')
-            .insert({ id: session.user.id, email: session.user.email })
-            .select()
-            .maybeSingle()
-            .then(({ data: novo }) => {
-              if (novo) {
-                avatarEmail.textContent = novo.email;
-                avatarName.textContent = novo.email;
-                avatarLetter.textContent = novo.email.charAt(0).toUpperCase();
-              }
-            });
-          return;
-        }
-        avatarEmail.textContent = user.email;
-        if (user.nome) {
-          nomeInput.value = user.nome;
-          avatarName.textContent = user.nome;
-          avatarLetter.textContent = user.nome.charAt(0).toUpperCase();
-        } else {
-          avatarName.textContent = user.email;
-          avatarLetter.textContent = user.email.charAt(0).toUpperCase();
-        }
-        if (user.avatar_url) {
-          avatarImg.src = user.avatar_url;
-          avatarImg.style.display = 'block';
-          avatarLetter.style.display = 'none';
-        }
+    const userId = session.user.id;
+    const token = session.access_token;
+
+    // Carrega dados do usuário
+    const resUser = await fetch('/api/usuarios/me', {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    const user = await resUser.json();
+
+    if (user && !user.error) {
+      avatarEmail.textContent = user.email || '';
+      if (user.nome) {
+        nomeInput.value = user.nome;
+        avatarName.textContent = user.nome;
+        avatarLetter.textContent = user.nome.charAt(0).toUpperCase();
+      }
+      if (user.avatar_url) {
+        avatarImg.src = user.avatar_url;
+        avatarImg.style.display = 'block';
+        avatarLetter.style.display = 'none';
+      }
+      if (user.badge_ativa) {
+        userBadgeDisplay.textContent = user.badge_ativa;
+        userBadgeDisplay.style.display = 'inline-block';
+      }
+    }
+
+    // Carrega Conquistas Atuais e Afinidade
+    try {
+      const resRank = await fetch('/api/ranking', {
+        headers: { Authorization: `Bearer ${token}` }
       });
+      const data = await resRank.json();
+
+      if (data && !data.error) {
+        // Conquistas desbloqueadas pelo usuário (prioriza inventário persistente do banco)
+        const inventario = (data.inventarioUsuario && data.inventarioUsuario.length > 0)
+          ? data.inventarioUsuario
+          : (data.conquistas || []).filter(c => c.usuario?.id === userId).map(c => ({
+              badge_id: c.id,
+              titulo: c.titulo,
+              descricao: c.descricao,
+              tipo_icone: c.tipoIcone,
+              destaque: c.destaque,
+              ativa: true
+            }));
+
+        const minhasAfinidades = (data.afinidade || []).filter(af => af.usuario1.id === userId || af.usuario2.id === userId);
+
+        // Popula seletor de títulos ativos no perfil
+        if (inventario.length > 0) {
+          badgeGroup.style.display = 'block';
+          badgeSelect.innerHTML = '<option value="">Nenhum título exibido</option>';
+          
+          let badgeAindaValida = false;
+          inventario.forEach(c => {
+            const opt = document.createElement('option');
+            opt.value = c.titulo;
+            opt.textContent = `${c.titulo} ${c.destaque ? `(${c.destaque})` : ''} ${c.ativa ? '— Detentor Atual' : ''}`;
+            if (user.badge_ativa === c.titulo) {
+              opt.selected = true;
+              badgeAindaValida = true;
+            }
+            badgeSelect.appendChild(opt);
+          });
+
+          if (user.badge_ativa && !badgeAindaValida) {
+            userBadgeDisplay.style.display = 'none';
+          }
+        }
+
+        if (inventario.length > 0 || minhasAfinidades.length > 0) {
+          statsSection.innerHTML = '';
+
+          // Card da Galeria de Conquistas do Usuário
+          if (inventario.length > 0) {
+            const conquistasCard = document.createElement('div');
+            conquistasCard.className = 'card perfil-badges-card';
+            
+            const cTitle = document.createElement('h3');
+            cTitle.className = 'card-title';
+            cTitle.textContent = 'Suas Conquistas no Clube';
+            cTitle.style.marginBottom = 'var(--space-4)';
+            conquistasCard.appendChild(cTitle);
+
+            const badgesGrid = document.createElement('div');
+            badgesGrid.className = 'perfil-badges-grid';
+
+            inventario.forEach(c => {
+              const item = document.createElement('div');
+              item.className = 'perfil-badge-item';
+              item.innerHTML = `
+                <div class="perfil-badge-icon">${getConquistaSvg(c.tipo_icone || c.tipoIcone)}</div>
+                <div class="perfil-badge-info">
+                  <div style="display:flex;align-items:center;gap:6px;">
+                    <strong>${c.titulo}</strong>
+                    ${c.ativa ? '<span class="conquista-stat-badge" style="font-size:0.68rem;padding:1px 6px;">Atual</span>' : ''}
+                  </div>
+                  <span class="caption text-muted">${c.descricao}</span>
+                  ${c.destaque ? `<span class="caption perfil-badge-tag">${c.destaque}</span>` : ''}
+                </div>
+              `;
+              badgesGrid.appendChild(item);
+            });
+
+            conquistasCard.appendChild(badgesGrid);
+            statsSection.appendChild(conquistasCard);
+          }
+
+          // Card de Afinidades com Amigos
+          if (minhasAfinidades.length > 0) {
+            const afinidadesCard = document.createElement('div');
+            afinidadesCard.className = 'card perfil-badges-card';
+            afinidadesCard.style.marginTop = 'var(--space-5)';
+
+            const aTitle = document.createElement('h3');
+            aTitle.className = 'card-title';
+            aTitle.textContent = 'Sua Sintonia com os Amigos';
+            aTitle.style.marginBottom = 'var(--space-4)';
+            afinidadesCard.appendChild(aTitle);
+
+            const afList = document.createElement('div');
+            afList.className = 'perfil-afinidades-list';
+
+            minhasAfinidades.forEach(af => {
+              const outro = af.usuario1.id === userId ? af.usuario2 : af.usuario1;
+              const row = document.createElement('div');
+              row.className = 'perfil-afinidade-row';
+              row.innerHTML = `
+                <div class="perfil-afinidade-user">
+                  <div class="perfil-afinidade-avatar">
+                    ${outro.avatar_url ? `<img src="${outro.avatar_url}">` : outro.nome.charAt(0).toUpperCase()}
+                  </div>
+                  <div>
+                    <strong>${outro.nome}</strong>
+                    <p class="caption text-muted">${af.nivel}</p>
+                  </div>
+                </div>
+                <div class="perfil-afinidade-bar-box">
+                  <div class="afinidade-bar-track">
+                    <div class="afinidade-bar-fill" style="width: ${af.porcentagem}%;"></div>
+                  </div>
+                  <span class="caption">${af.porcentagem}%</span>
+                </div>
+              `;
+              afList.appendChild(row);
+            });
+
+            afinidadesCard.appendChild(afList);
+            statsSection.appendChild(afinidadesCard);
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Erro ao carregar estatísticas do perfil:', err);
+    }
   });
 
   return container;

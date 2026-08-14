@@ -101,11 +101,24 @@ function initReviewCard(avaliacao, usuarioLogadoId, onRefresh, onEdit) {
 
   const meta = document.createElement('div');
   meta.className = 'review-meta';
+  
+  const nomeRow = document.createElement('div');
+  nomeRow.className = 'review-author-row';
+  
   const nome = document.createElement('span');
   nome.className = 'card-title';
   nome.textContent = avaliacao.usuarios?.nome || 'Desconhecido';
+  nomeRow.appendChild(nome);
+
+  if (avaliacao.usuarios?.badge_ativa) {
+    const badge = document.createElement('span');
+    badge.className = 'user-badge-tag';
+    badge.textContent = avaliacao.usuarios.badge_ativa;
+    nomeRow.appendChild(badge);
+  }
+
   const stars = renderStars(avaliacao.nota);
-  meta.appendChild(nome);
+  meta.appendChild(nomeRow);
   meta.appendChild(stars);
 
   header.appendChild(avatar);
@@ -495,12 +508,12 @@ function renderModalDetalhesContent(modal, filme, detalhes, opts = {}) {
   // Botão de Watchlist (Quero Indicar)
   const btnWatchlist = document.createElement('button');
   btnWatchlist.className = 'btn btn-outline modal-btn-watchlist';
-  btnWatchlist.innerHTML = '<span>🔖</span> Quero Indicar';
+  btnWatchlist.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg> <span>Quero Indicar</span>';
 
   isMovieInWatchlist(filme.tmdb_id).then(isSaved => {
     if (isSaved) {
       btnWatchlist.classList.add('active');
-      btnWatchlist.innerHTML = '<span>✓</span> Na Minha Lista';
+      btnWatchlist.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> <span>Na Minha Lista</span>';
     }
   }).catch(() => {});
 
@@ -518,10 +531,10 @@ function renderModalDetalhesContent(modal, filme, detalhes, opts = {}) {
       });
       if (res.saved) {
         btnWatchlist.classList.add('active');
-        btnWatchlist.innerHTML = '<span>✓</span> Na Minha Lista';
+        btnWatchlist.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg> <span>Na Minha Lista</span>';
       } else {
         btnWatchlist.classList.remove('active');
-        btnWatchlist.innerHTML = '<span>🔖</span> Quero Indicar';
+        btnWatchlist.innerHTML = '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg> <span>Quero Indicar</span>';
       }
       onWatchlistChange?.(res.saved);
     } catch (err) {
@@ -644,8 +657,8 @@ function renderEscolhendo(data, container) {
           card.appendChild(img);
         } else {
           const placeholder = document.createElement('div');
-          placeholder.style.cssText = 'width:100%;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;background:var(--charcoal-04);color:var(--muted-gray);font-size:1.5rem;';
-          placeholder.textContent = '🎬';
+          placeholder.style.cssText = 'width:100%;aspect-ratio:2/3;display:flex;align-items:center;justify-content:center;background:var(--charcoal-04);color:var(--muted-gray);';
+          placeholder.innerHTML = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/></svg>';
           card.appendChild(placeholder);
         }
 

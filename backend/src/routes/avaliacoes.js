@@ -17,7 +17,7 @@ router.get('/:quinzena_id', async (req, res) => {
     const sb = authed(token);
     const { data, error } = await sb
       .from('avaliacoes')
-      .select('*, usuarios(nome, avatar_url), reacoes(*, usuarios(nome))')
+      .select('*, usuarios(nome, avatar_url, badge_ativa), reacoes(*, usuarios(nome))')
       .eq('quinzena_id', req.params.quinzena_id);
 
     if (error) return res.status(500).json({ error: error.message });
@@ -52,7 +52,7 @@ router.post('/', async (req, res) => {
         comentario: comentario || null,
         spoiler: spoiler || false
       })
-      .select('*, usuarios(nome, avatar_url)')
+      .select('*, usuarios(nome, avatar_url, badge_ativa)')
       .maybeSingle();
 
     if (error) return res.status(500).json({ error: error.message });
@@ -86,7 +86,7 @@ router.put('/:id', async (req, res) => {
       .update(updates)
       .eq('id', req.params.id)
       .eq('usuario_id', user.id)
-      .select('*, usuarios(nome, avatar_url)')
+      .select('*, usuarios(nome, avatar_url, badge_ativa)')
       .maybeSingle();
 
     if (error) return res.status(500).json({ error: error.message });

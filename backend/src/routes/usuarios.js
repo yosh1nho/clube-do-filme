@@ -58,6 +58,7 @@ router.put('/me', async (req, res) => {
     const updates = {};
     if (req.body.nome !== undefined) updates.nome = req.body.nome.trim();
     if (req.body.avatar_url !== undefined) updates.avatar_url = req.body.avatar_url;
+    if (req.body.badge_ativa !== undefined) updates.badge_ativa = req.body.badge_ativa ? req.body.badge_ativa.trim() : null;
 
     if (Object.keys(updates).length === 0) {
       return res.status(400).json({ error: 'Nada para atualizar' });

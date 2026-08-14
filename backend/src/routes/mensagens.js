@@ -17,7 +17,7 @@ router.get('/:quinzena_id', async (req, res) => {
     const sb = authed(token);
     const { data, error } = await sb
       .from('chat_mensagens')
-      .select('*, usuarios(nome, avatar_url)')
+      .select('*, usuarios(nome, avatar_url, badge_ativa)')
       .eq('quinzena_id', req.params.quinzena_id)
       .order('criado_em', { ascending: true });
 
@@ -51,7 +51,7 @@ router.post('/', async (req, res) => {
         usuario_id: user.id,
         conteudo: conteudo.trim()
       })
-      .select('*, usuarios(nome, avatar_url)')
+      .select('*, usuarios(nome, avatar_url, badge_ativa)')
       .maybeSingle();
 
     if (error) return res.status(500).json({ error: error.message });

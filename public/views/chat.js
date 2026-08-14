@@ -59,14 +59,21 @@ function criarBolha(mensagem, usuarioLogadoId) {
   const nome = document.createElement('span');
   nome.className = 'chat-message-author';
   nome.textContent = propria ? 'Você' : (usuario.nome || 'Usuário');
+  meta.appendChild(nome);
+
+  if (usuario?.badge_ativa) {
+    const badge = document.createElement('span');
+    badge.className = 'chat-user-badge';
+    badge.textContent = usuario.badge_ativa;
+    meta.appendChild(badge);
+  }
 
   const hora = document.createElement('span');
   hora.className = 'chat-message-time';
   hora.textContent = formatHora(mensagem.criado_em);
   hora.title = mensagem.criado_em ? new Date(mensagem.criado_em).toLocaleString('pt-BR') : '';
-
-  meta.appendChild(nome);
   meta.appendChild(hora);
+
   body.appendChild(meta);
 
   const bubble = document.createElement('div');
